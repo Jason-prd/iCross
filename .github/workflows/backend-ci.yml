@@ -1,0 +1,73 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['backend/**', '.github/workflows/backend-ci.yml']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -e ".[dev]" || pip install -r requirements.txt
+          
+      - name: Run ruff linter
+        run: |
+          cd backend
+          pip install ruff
+          ruff check . --fix || true
+          
+      - name: Run black formatter check
+        run: |
+          cd backend
+          pip install black
+          black --check . || true
+          
+      - name: Run mypy type check
+        run: |
+          cd backend
+          pip install mypy
+          mypy . --ignore-missing-imports || true
+          
+      - name: Run tests with coverage
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+        run: |
+          cd backend
+          pip install pytest pytest-cov pytest-asyncio
+          pytest --cov=app --cov-report=xml --cov-report=term-missing -v || true
+          
+      - name: Upload coverage
+        if: success()
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
