@@ -1,0 +1,473 @@
+# iCross 开发环境 Docker Compose 配置
+# 用于本地开发和测试环境
+
+version: '3.8'
+
+services:
+  # ====================
+  # 1. 数据库服务
+  # ====================
+  
+  postgres:
+    image: postgres:15-alpine
+    container_name: icross-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-icross_development}
+      POSTGRES_USER: ${POSTGRES_USER:-icross}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-icross123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-icross}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - icross-network
+
+  # TimescaleDB扩展 (时序数据)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: icross-timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-icross_development}_timeseries
+      POSTGRES_USER: ${POSTGRES_USER:-icross}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-icross123}
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    networks:
+      - icross-network
+
+  # ====================
+  # 2. 缓存和消息队列
+  # ====================
+  
+  redis:
+    image: redis:7-alpine
+    container_name: icross-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - icross-network
+
+  # Redis Insight (可视化工具)
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: icross-redis-insight
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      - redis_insight_data:/db
+    networks:
+      - icross-network
+
+  # ====================
+  # 3. 对象存储
+  # ====================
+  
+  minio:
+    image: minio/minio:latest
+    container_name: icross-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - icross-network
+
+  # MinIO客户端 (管理工具)
+  minio-mc:
+    image: minio/mc:latest
+    container_name: icross-minio-mc
+    restart: unless-stopped
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
+      /usr/bin/mc mb local/${MINIO_BUCKET_NAME:-icross-files};
+      /usr/bin/mc policy set public local/${MINIO_BUCKET_NAME:-icross-files};
+      tail -f /dev/null
+      "
+    depends_on:
+      - minio
+    networks:
+      - icross-network
+
+  # ====================
+  # 4. 向量数据库
+  # ====================
+  
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    container_name: icross-weaviate
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      DEFAULT_VECTORIZER_MODULE: "none"
+      ENABLE_MODULES: "text2vec-openai,text2vec-cohere,text2vec-huggingface,generative-openai,generative-cohere,generative-palm,qna-openai"
+      CLUSTER_HOSTNAME: "node1"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - icross-network
+
+  # ====================
+  # 5. 后端服务
+  # ====================
+  
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: icross-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # 应用配置
+      APP_ENV: ${APP_ENV:-development}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-your-secret-key-change-in-production}
+      
+      # 数据库配置
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-icross_development}
+      POSTGRES_USER: ${POSTGRES_USER:-icross}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-icross123}
+      
+      # Redis配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      
+      # 其他服务配置
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-icross-files}
+      
+      WEAVIATE_HOST: weaviate
+      WEAVIATE_PORT: 8080
+      
+      # AI服务配置 (从环境变量读取)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      
+      # 第三方平台配置
+      OZON_CLIENT_ID: ${OZON_CLIENT_ID:-}
+      OZON_API_KEY: ${OZON_API_KEY:-}
+      
+      AMAZON_CLIENT_ID: ${AMAZON_CLIENT_ID:-}
+      AMAZON_CLIENT_SECRET: ${AMAZON_CLIENT_SECRET:-}
+      AMAZON_REFRESH_TOKEN: ${AMAZON_REFRESH_TOKEN:-}
+      
+      SHOPIFY_SHOP_NAME: ${SHOPIFY_SHOP_NAME:-}
+      SHOPIFY_ACCESS_TOKEN: ${SHOPIFY_ACCESS_TOKEN:-}
+    volumes:
+      - ./backend:/app
+      - backend_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      weaviate:
+        condition: service_started
+    command: >
+      sh -c "
+      echo '等待数据库准备就绪...' &&
+      sleep 5 &&
+      echo '运行数据库迁移...' &&
+      alembic upgrade head &&
+      echo '启动开发服务器...' &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+    networks:
+      - icross-network
+
+  # Celery Worker (异步任务)
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: icross-celery-worker
+    restart: unless-stopped
+    environment:
+      # 共享后端相同的环境变量
+      APP_ENV: ${APP_ENV:-development}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-icross_development}
+      POSTGRES_USER: ${POSTGRES_USER:-icross}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-icross123}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - celery_logs:/app/logs
+    depends_on:
+      - redis
+      - postgres
+    command: >
+      sh -c "
+      echo '启动Celery Worker...' &&
+      celery -A app.tasks.celery_app worker --loglevel=info --concurrency=4
+      "
+    networks:
+      - icross-network
+
+  # Celery Beat (定时任务)
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: icross-celery-beat
+    restart: unless-stopped
+    environment:
+      # 共享后端相同的环境变量
+      APP_ENV: ${APP_ENV:-development}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-icross_development}
+      POSTGRES_USER: ${POSTGRES_USER:-icross}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-icross123}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+      - celery_beat_logs:/app/logs
+    depends_on:
+      - redis
+      - postgres
+    command: >
+      sh -c "
+      echo '启动Celery Beat...' &&
+      celery -A app.tasks.celery_app beat --loglevel=info
+      "
+    networks:
+      - icross-network
+
+  # ====================
+  # 6. 前端服务
+  # ====================
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: icross-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+      VITE_APP_TITLE: ${VITE_APP_TITLE:-iCross Development}
+      VITE_APP_VERSION: ${VITE_APP_VERSION:-1.0.0}
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+    command: >
+      sh -c "
+      echo '安装前端依赖...' &&
+      npm install &&
+      echo '启动开发服务器...' &&
+      npm run dev
+      "
+    networks:
+      - icross-network
+
+  # ====================
+  # 7. 监控和日志
+  # ====================
+  
+  # Prometheus (指标收集)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: icross-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - icross-network
+
+  # Grafana (可视化仪表板)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: icross-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: "grafana-piechart-panel"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - icross-network
+
+  # Loki (日志收集)
+  loki:
+    image: grafana/loki:latest
+    container_name: icross-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+      - ./monitoring/loki-config.yaml:/etc/loki/local-config.yaml
+    networks:
+      - icross-network
+
+  # Promtail (日志收集客户端)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: icross-promtail
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app/backend:ro
+      - ./frontend:/app/frontend:ro
+      - /var/log:/var/log:ro
+      - ./monitoring/promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on:
+      - loki
+    networks:
+      - icross-network
+
+  # ====================
+  # 8. 开发工具
+  # ====================
+  
+  # pgAdmin (数据库管理)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: icross-pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@icross.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - icross-network
+
+  # MailHog (邮件测试)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: icross-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP端口
+      - "8025:8025"  # Web UI端口
+    networks:
+      - icross-network
+
+  # Traefik (API网关 - 开发环境)
+  traefik:
+    image: traefik:v3.0
+    container_name: icross-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8080:8080"  # 管理界面
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.dev.yml:/etc/traefik/traefik.yml
+    networks:
+      - icross-network
+
+# ====================
+# 数据卷定义
+# ====================
+volumes:
+  postgres_data:
+  timescaledb_data:
+  redis_data:
+  redis_insight_data:
+  minio_data:
+  weaviate_data:
+  backend_logs:
+  celery_logs:
+  celery_beat_logs:
+  frontend_node_modules:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  pgadmin_data:
+
+# ====================
+# 网络定义
+# ====================
+networks:
+  icross-network:
+    driver: bridge
+    name: icross-network
+
+# ====================
+# 使用说明
+# ====================
+# 1. 复制 .env.example 为 .env 并配置环境变量
+# 2. 启动服务: docker-compose -f docker-compose.dev.yml up -d
+# 3. 查看服务状态: docker-compose -f docker-compose.dev.yml ps
+# 4. 查看日志: docker-compose -f docker-compose.dev.yml logs -f [service-name]
+# 5. 停止服务: docker-compose -f docker-compose.dev.yml down
+# 6. 清理数据: docker-compose -f docker-compose.dev.yml down -v
+# ====================

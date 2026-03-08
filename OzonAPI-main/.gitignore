@@ -1,0 +1,17 @@
+.env
+.pypirc
+.idea/
+venv/
+.venv/
+build/
+dist/
+*.pid
+**.log
+**/.coverage
+**/coverage.xml
+**/htmlcov/
+**/.sonar/
+**/.pytest_cache/
+**/__pycache__/
+*.egg-info/
+**/logs/

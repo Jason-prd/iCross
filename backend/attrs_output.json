@@ -1,0 +1,415 @@
+[
+  {
+    "attributes": [
+      {
+        "complex_id": 0,
+        "id": 85,
+        "values": [
+          {
+            "dictionary_value_id": 970873646,
+            "value": "Ald"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 9048,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "SKU#0523235411"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 23171,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "#спальныймешок #спальныймешоктуристический #спальныймешокзимний #спальник #спальникзимний #мешокспальный #мешокспальныйтуристический #спальныемешки #спальныймешоктуристический #спальныймешок #спальник #спальныймешок #спальныймешокзимний"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 4191,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "🔥Стиральный спальный мешок 4 сезона, конверт, для кемпинга и путешествий🔥  <br/><br/>✅ Стиральный дизайн, удобная очистка  <br/><br/>✅ Конвертная конструкция, комфорт и тепло  <br/><br/>✅ Подходит для температур от 12℃ до 1℃, 4 сезона  <br/><br/>✅ Различные варианты веса: 1.2KG (весна-осень), 1.5KG (весна-осень), 1.8KG (зима)  <br/><br/>✅ Различные цвета: серый, хаки, зеленый, светло-розовый  <br/><br/>✅ Варианты для левой и правой руки, можно соединить в двойной спальный мешок"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 11254,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "{\n  \"content\": [\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-k/7565862980.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-k/7565862980.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1124\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-r/7565863059.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-r/7565863059.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1370\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-e/7565863046.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-e/7565863046.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1310\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-e/7565863082.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-e/7565863082.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1159\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-i/7565863050.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-i/7565863050.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 526\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-h/7565863049.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-h/7565863049.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 499\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-d/7565863081.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-d/7565863081.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1038\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-v/7565862955.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-v/7565862955.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1081\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-6/7565863002.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-6/7565863002.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1003\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-b/7565863007.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-b/7565863007.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1400\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-1/7565863033.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-1/7565863033.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1156\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-7/7565863003.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-7/7565863003.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 747\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-s/7565862952.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-s/7565862952.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1437\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-9/7565863077.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-9/7565863077.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1862\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-f/7565862975.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-f/7565862975.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1017\n          }\n        }\n      ]\n    },\n    {\n      \"widgetName\": \"raShowcase\",\n      \"type\": \"roll\",\n      \"blocks\": [\n        {\n          \"imgLink\": \"\",\n          \"img\": {\n            \"src\": \"https://cdn1.ozone.ru/s3/multimedia-1-q/7565862950.jpg\",\n            \"srcMobile\": \"https://cdn1.ozone.ru/s3/multimedia-1-q/7565862950.jpg\",\n            \"alt\": \"\",\n            \"position\": \"width_full\",\n            \"positionMobile\": \"width_full\",\n            \"widthMobile\": 750,\n            \"heightMobile\": 1074\n          }\n        }\n      ]\n    }\n  ],\n  \"version\": 0.3\n}"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 10096,
+        "values": [
+          {
+            "dictionary_value_id": 61576,
+            "value": "серый"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 10097,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "Серый\t1.5кг\tВесна-осень\tдо +6℃\tПравая сторона\n"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 8954,
+        "values": [
+          {
+            "dictionary_value_id": 970672032,
+            "value": "Универсальный"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 7956,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "210"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 8072,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "80"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 8070,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "80"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 7898,
+        "values": [
+          {
+            "dictionary_value_id": 86279,
+            "value": "Кокон"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 10076,
+        "values": [
+          {
+            "dictionary_value_id": 970679136,
+            "value": "Трехсезонный"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 21603,
+        "values": [
+          {
+            "dictionary_value_id": 971282652,
+            "value": "От 0 до +5"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 21604,
+        "values": [
+          {
+            "dictionary_value_id": 971282651,
+            "value": "От +6 до +10"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 8067,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "6"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 8068,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "200"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 10099,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "300"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 7923,
+        "values": [
+          {
+            "dictionary_value_id": 57115,
+            "value": "Кемпинговое"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 7927,
+        "values": [
+          {
+            "dictionary_value_id": 25374,
+            "value": "Справа"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 7941,
+        "values": [
+          {
+            "dictionary_value_id": 41840,
+            "value": "2"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 7949,
+        "values": [
+          {
+            "dictionary_value_id": 970974866,
+            "value": "Дюспо"
+          },
+          {
+            "dictionary_value_id": 972086800,
+            "value": "210T полиэстер"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 23193,
+        "values": [
+          {
+            "dictionary_value_id": 972271211,
+            "value": "Синтетика"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 7960,
+        "values": [
+          {
+            "dictionary_value_id": 81675,
+            "value": "Возможность состегивания"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 7878,
+        "values": [
+          {
+            "dictionary_value_id": 62174,
+            "value": "Хлопок"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 8074,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "43"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 8076,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "25"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 8078,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "25"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 9390,
+        "values": [
+          {
+            "dictionary_value_id": 43241,
+            "value": "Взрослая"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 4383,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "1500"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 4180,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "спальный мешок, Подходит для всех сезонов, композитный"
+          }
+        ]
+      },
+      {
+        "complex_id": 0,
+        "id": 9024,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "SKU#0523235411-1-0"
+          }
+        ]
+      }
+    ],
+    "barcode": "OZN2177668447",
+    "description_category_id": 17029010,
+    "color_image": "https://cdn1.ozone.ru/s3/multimedia-1-i/7565863014.jpg",
+    "complex_attributes": [
+      {
+        "complex_id": 100001,
+        "id": 21841,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "https://cdnvideo.v.ozone.ru/vod/video-67/01JXPBBY8DXP28V0WXRPWQTZE9/asset_2_h264.mp4"
+          }
+        ]
+      },
+      {
+        "complex_id": 100001,
+        "id": 21837,
+        "values": [
+          {
+            "dictionary_value_id": 0,
+            "value": "视频_01mp4_1cfcee8a40aa7fad-t.mp4"
+          }
+        ]
+      }
+    ],
+    "depth": 400,
+    "dimension_unit": "mm",
+    "height": 200,
+    "images": [
+      "https://cdn1.ozone.ru/s3/multimedia-1-h/7565863085.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-k/7565863016.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-c/7565862936.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-1/7565863177.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-5/7565862965.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-8/7565862968.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-4/7565863108.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-q/7565863094.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-r/7565862987.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-4/7565863036.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-h/7565863013.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-m/7565863018.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-2/7565863070.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-c/7565863008.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-0/7565863104.jpg",
+      "https://cdn1.ozone.ru/s3/multimedia-1-m/7565863090.jpg"
+    ],
+    "name": "спальный мешок, Подходит для всех сезонов, композитный",
+    "offer_id": "SKU#0523235411-1-0",
+    "primary_image": "https://cdn1.ozone.ru/s3/multimedia-1-i/7565863014.jpg",
+    "type_id": 93529,
+    "weight": 1200,
+    "weight_unit": "g",
+    "width": 200,
+    "attributes_with_defaults": [
+      10100,
+      11794,
+      22074,
+      22806,
+      23120,
+      23121,
+      23133,
+      23134,
+      23137,
+      23138,
+      23173,
+      23183,
+      23184,
+      23185,
+      23186,
+      23187,
+      23188,
+      23379,
+      23380,
+      23524
+    ],
+    "barcodes": [
+      "OZN2177668447"
+    ],
+    "id": 1822804843,
+    "model_info": {
+      "model_id": 586624719,
+      "count": 36
+    },
+    "pdf_list": [],
+    "sku": 2177668447
+  }
+]

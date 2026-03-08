@@ -44,25 +44,29 @@ from .models import (
 
 
 class OzonIntegrationAdapter:
-    """Ozon平台集成适配器"""
+    """Ozon platform integration adapter"""
 
     def __init__(self, client_id: Optional[str] = None, api_key: Optional[str] = None):
         if not OZON_API_AVAILABLE:
-            raise ImportError("Ozon API库不可用，请检查安装")
+            raise ImportError(
+                "Ozon API library not available, please check installation"
+            )
 
         self.client_id = client_id or ozon_config.client_id
         self.api_key = api_key or ozon_config.api_key
         self._api: Optional[SellerAPI] = None
         self._connected = False
 
-        client_id_display = self.client_id[:10] if self.client_id else "未配置"
-        logger.info(f"初始化Ozon集成适配器，客户端ID: {client_id_display}...")
+        client_id_display = self.client_id[:10] if self.client_id else "not configured"
+        logger.info(
+            f"Initializing Ozon integration adapter, client ID: {client_id_display}..."
+        )
 
     async def connect(self) -> bool:
-        """连接到Ozon API"""
+        """Connect to Ozon API"""
         try:
             if not self.client_id or not self.api_key:
-                raise OzonAuthenticationError("Ozon API凭证未配置")
+                raise OzonAuthenticationError("Ozon API credentials not configured")
 
             self._api = SellerAPI(
                 client_id=self.client_id,
@@ -70,22 +74,24 @@ class OzonIntegrationAdapter:
             )
 
             self._connected = True
-            logger.info("Ozon API适配器已初始化")
+            logger.info("Ozon API adapter initialized")
             return True
 
         except APIError as e:
-            logger.error(f"初始化Ozon API失败: {e}")
-            raise OzonConnectionError(f"初始化失败: {e}")
+            logger.error(f"Failed to initialize Ozon API: {e}")
+            raise OzonConnectionError(f"Initialization failed: {e}")
         except Exception as e:
-            logger.error(f"初始化Ozon API时发生未知错误: {type(e).__name__}: {str(e)}")
+            logger.error(
+                f"Unknown error during Ozon API initialization: {type(e).__name__}: {str(e)}"
+            )
             error_msg = str(e) if str(e) else f"{type(e).__name__} (no message)"
-            raise OzonConnectionError(f"初始化错误: {error_msg}")
+            raise OzonConnectionError(f"Initialization error: {error_msg}")
 
     async def disconnect(self):
-        """断开Ozon API连接"""
+        """Disconnect from Ozon API"""
         self._connected = False
         self._api = None
-        logger.info("已断开Ozon API连接")
+        logger.info("Disconnected from Ozon API")
 
     async def __aenter__(self):
         await self.connect()
@@ -95,14 +101,16 @@ class OzonIntegrationAdapter:
         await self.disconnect()
 
     def _ensure_connected(self):
-        """确保已连接到Ozon API"""
+        """Ensure connected to Ozon API"""
         if not self._connected or not self._api:
-            raise OzonConnectionError("未连接到Ozon API，请先调用connect()方法")
+            raise OzonConnectionError(
+                "Not connected to Ozon API, please call connect() first"
+            )
 
     async def get_products(
         self, page: int = 1, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> List[OzonProduct]:
-        """获取Ozon商品列表"""
+        """Get Ozon product list"""
         self._ensure_connected()
 
         try:
@@ -188,7 +196,7 @@ class OzonIntegrationAdapter:
             raise OzonIntegrationError(f"创建商品错误: {str(e)}")
 
     async def update_product(self, product: OzonProduct) -> Dict[str, Any]:
-        """在Ozon更新商品信息"""
+        """Update product information on Ozon"""
         self._ensure_connected()
 
         try:
@@ -365,7 +373,7 @@ class OzonIntegrationAdapter:
             raise OzonIntegrationError(f"更新商品错误: {str(e)}")
 
     async def archive_product(self, product_id: int) -> Dict[str, Any]:
-        """在Ozon归档商品"""
+        """Archive product on Ozon"""
         self._ensure_connected()
 
         try:
@@ -381,7 +389,7 @@ class OzonIntegrationAdapter:
             raise OzonIntegrationError(f"归档商品错误: {str(e)}")
 
     async def unarchive_product(self, product_id: int) -> Dict[str, Any]:
-        """在Ozon取消归档商品"""
+        """Unarchive product on Ozon"""
         self._ensure_connected()
 
         try:
@@ -397,7 +405,7 @@ class OzonIntegrationAdapter:
             raise OzonIntegrationError(f"取消归档商品错误: {str(e)}")
 
     async def get_categories(self) -> List[OzonCategory]:
-        """获取Ozon分类树"""
+        """Get Ozon category tree"""
         self._ensure_connected()
 
         try:
@@ -441,7 +449,7 @@ class OzonIntegrationAdapter:
         status: Optional[str] = None,
         limit: int = 100,
     ) -> List[Dict[str, Any]]:
-        """获取Ozon FBO订单列表"""
+        """Get Ozon FBO order list"""
         self._ensure_connected()
 
         try:
@@ -490,7 +498,7 @@ class OzonIntegrationAdapter:
         status: Optional[str] = None,
         limit: int = 100,
     ) -> List[Dict[str, Any]]:
-        """获取Ozon FBS订单列表"""
+        """Get Ozon FBS order list"""
         self._ensure_connected()
 
         try:
@@ -580,12 +588,12 @@ class OzonIntegrationAdapter:
         return all_orders
 
     async def get_inventory(self) -> List[OzonInventoryItem]:
-        """获取Ozon库存信息"""
+        """Get Ozon inventory information"""
         logger.warning("库存API功能待实现")
         return []
 
     def _parse_datetime(self, dt_str: Optional[str]) -> Optional[datetime]:
-        """解析日期时间字符串"""
+        """Parse datetime string"""
         if not dt_str:
             return None
 
@@ -600,7 +608,7 @@ class OzonIntegrationAdapter:
             return None
 
     async def test_connection(self) -> Dict[str, Any]:
-        """测试Ozon API连接"""
+        """Test Ozon API connection"""
         try:
             connected = await self.connect()
 
@@ -623,7 +631,7 @@ class OzonIntegrationAdapter:
             await self.disconnect()
 
     async def get_product_details(self, product_ids: List[int]) -> List[Dict[str, Any]]:
-        """获取Ozon商品详细信息"""
+        """Get Ozon product details"""
         self._ensure_connected()
 
         try:
@@ -656,7 +664,7 @@ class OzonIntegrationAdapter:
             raise OzonIntegrationError(f"获取商品详情错误: {str(e)}")
 
     def _parse_fbo_order(self, order_data: Any) -> Dict[str, Any]:
-        """解析Ozon FBO订单数据"""
+        """Parse Ozon FBO order data"""
         try:
             order_dict = (
                 order_data.model_dump()
@@ -733,7 +741,7 @@ class OzonIntegrationAdapter:
             }
 
     def _parse_fbs_order(self, order_data: Any) -> Dict[str, Any]:
-        """解析Ozon FBS订单数据"""
+        """Parse Ozon FBS order data"""
         try:
             order_dict = (
                 order_data.model_dump()

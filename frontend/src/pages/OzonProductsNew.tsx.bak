@@ -1,0 +1,861 @@
+// -*- coding: utf-8 -*-
+/**
+ * Ozon商品页面
+ * 显示所有已上架到Ozon的商品，支持编辑
+ */
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Tag, Button, Space, Input, Row, Col, Statistic, Modal, Descriptions, Tooltip, Form, InputNumber, Select, message, Spin, Divider, Checkbox, Radio } from 'antd';
+import { EyeOutlined, EditOutlined, SyncOutlined, DollarOutlined, StockOutlined, ShopOutlined, ReloadOutlined } from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+import { ozonApi } from '../services/api';
+
+const { Search } = Input;
+const { TextArea } = Input;
+
+// 属性选项接口 - 匹配Ozon API返回格式
+interface AttributeOption {
+  value_id: number;
+  value: string;
+  info?: string;
+  picture?: string;
+}
+
+// 商品属性接口 - 匹配Ozon API返回格式
+interface ProductAttribute {
+  attribute_id: number;
+  name?: string;  // 属性名称
+  attribute_name?: string;
+  type?: string;  // attribute_type: String, Integer, Decimal等
+  attribute_type?: string;
+  dictionary_id?: number;  // 字典ID >0 表示有选项
+  group_id?: number;
+  group_name?: string;  // 属性分组
+  is_required?: boolean;
+  is_collection?: boolean;  // 是否多选
+  max_value_count?: number;  // 最大值数量
+  // 当前已选的值
+  value?: string;
+  value_id?: number | string;  // 支持数字和逗号分隔的字符串（多选用）
+  values?: AttributeOption[];  // 选项列表
+}
+
+interface OzonProduct {
+  id: string;
+  sku: string;
+  spu: string;
+  title: string;
+  ozon_price: number;
+  ozon_stock: number;
+  ozon_product_id: string;
+  platform_status: string;
+  listing_status: string;
+  profit_rate: number;
+  sales_30d: number;
+  last_synced: string;
+  // 分类和属性信息
+  category_id?: number;
+  category_name?: string;
+  type_id?: number;
+  attributes?: ProductAttribute[];
+  // 选品信息
+  source_price?: number;  // 采购价
+  source_supplier?: string;  // 供应商
+}
+
+const OzonProductsPage: React.FC = () => {
+  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<OzonProduct[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<OzonProduct[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<OzonProduct | null>(null);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<OzonProduct | null>(null);
+  const [editForm] = Form.useForm();
+  
+  // 属性编辑相关状态
+  const [categoryAttributes, setCategoryAttributes] = useState<ProductAttribute[]>([]);
+  const [attributesLoading, setAttributesLoading] = useState(false);
+  // 支持单选(number)和多选(number[])
+  const [editingAttributes, setEditingAttributes] = useState<Record<number, number | number[]>>({});
+
+  // 模拟数据（包含选品信息）
+  useEffect(() => {
+    const mockData: OzonProduct[] = [
+      {
+        id: '1',
+        sku: 'SKU#0828104003-1',
+        spu: 'SKU#0828104003',
+        title: '跨境爆款复古蝴蝶保护壳轻奢适用iPhone17Promax潮牌苹果16手机壳',
+        ozon_price: 899.00,
+        ozon_stock: 100,
+        ozon_product_id: '1803722916',
+        platform_status: 'active',
+        listing_status: 'listed',
+        profit_rate: 35.5,
+        sales_30d: 15,
+        last_synced: '2026-02-27 21:00',
+        source_price: 16.00,
+        source_supplier: '深圳代发商',
+        // 分类和属性信息（手机壳类目）
+        category_id: 17032965,
+        category_name: '手机壳',
+        type_id: 17032965,
+      },
+      {
+        id: '2',
+        sku: 'SKU#0828104003-2',
+        spu: 'SKU#0828104003',
+        title: '跨境爆款复古蝴蝶保护壳轻奢适用iPhone17Promax潮牌苹果16手机壳',
+        ozon_price: 899.00,
+        ozon_stock: 50,
+        ozon_product_id: '1803722916',
+        platform_status: 'active',
+        listing_status: 'listed',
+        profit_rate: 35.5,
+        sales_30d: 8,
+        last_synced: '2026-02-27 21:00',
+        source_price: 18.00,
+        source_supplier: '深圳代发商',
+        category_id: 17032965,
+        category_name: '手机壳',
+        type_id: 17032965,
+      },
+      {
+        id: '3',
+        sku: 'SKU#0829000219-1',
+        spu: 'SKU#0829000219',
+        title: 'Postercars合金车模1:64超级跑车赛车玩具车模滑行收藏摆件挂卡',
+        ozon_price: 1590.00,
+        ozon_stock: 20,
+        ozon_product_id: '1822804783',
+        platform_status: 'active',
+        listing_status: 'listed',
+        profit_rate: 28.0,
+        sales_30d: 3,
+        last_synced: '2026-02-27 21:00',
+        source_price: 69.00,
+        source_supplier: '上海代发商',
+      },
+    ];
+    setProducts(mockData);
+    setFilteredProducts(mockData);
+  }, []);
+
+  useEffect(() => {
+    if (searchText) {
+      setFilteredProducts(products.filter(p => 
+        p.sku.toLowerCase().includes(searchText.toLowerCase()) ||
+        p.title.toLowerCase().includes(searchText.toLowerCase())
+      ));
+    } else {
+      setFilteredProducts(products);
+    }
+  }, [searchText, products]);
+
+  const getStatusTag = (status: string) => {
+    const statusMap: Record<string, { color: string; text: string }> = {
+      active: { color: 'green', text: '在售' },
+      inactive: { color: 'default', text: '下架' },
+      archived: { color: 'red', text: '归档' },
+    };
+    const s = statusMap[status] || { color: 'default', text: status };
+    return <Tag color={s.color}>{s.text}</Tag>;
+  };
+
+  const getProfitTag = (rate: number) => {
+    if (rate >= 30) return <Tag color="green">高利润 {rate}%</Tag>;
+    if (rate >= 15) return <Tag color="orange">中等 {rate}%</Tag>;
+    return <Tag color="red">低利润 {rate}%</Tag>;
+  };
+
+  // 打开编辑弹窗
+  const handleEdit = async (record: OzonProduct) => {
+    setEditingProduct(record);
+    editForm.setFieldsValue({
+      ozon_price: record.ozon_price,
+      ozon_stock: record.ozon_stock,
+    });
+    
+    // 加载商品属性 - 使用新的description-category API
+    if (record.category_id && record.type_id) {
+      setAttributesLoading(true);
+      try {
+        // 获取分类属性列表
+        const attrs = await ozonApi.getDescriptionCategoryAttribute({
+          description_category_id: record.category_id,
+          type_id: record.type_id,
+        });
+        
+        // 获取每个属性的选项值
+        const attrsWithOptions: ProductAttribute[] = await Promise.all(
+          (attrs as any[]).map(async (attr: any) => {
+            // 判断控件类型
+            const attributeType = attr.type || attr.attribute_type;
+            const dictionaryId = attr.dictionary_id;
+            const isCollection = attr.is_collection || (attr.max_value_count && attr.max_value_count > 1);
+            
+            // 如果有dictionary_id，获取选项列表
+            let options: AttributeOption[] = [];
+            if (dictionaryId && dictionaryId > 0) {
+              try {
+                const values = await ozonApi.getDescriptionCategoryAttributeValues({
+                  description_category_id: record.category_id!,
+                  type_id: record.type_id!,
+                  attribute_id: attr.attribute_id,
+                });
+                options = (values as any[]).map((v: any) => ({
+                  value_id: v.value_id,
+                  value: v.value,
+                  info: v.info,
+                  picture: v.picture,
+                }));
+              } catch (e) {
+                console.error(`Failed to load values for attribute ${attr.attribute_id}:`, e);
+              }
+            }
+            
+            return {
+              attribute_id: attr.attribute_id,
+              name: attr.name,
+              attribute_name: attr.attribute_name || attr.name,
+              type: attributeType,
+              attribute_type: attributeType,
+              dictionary_id: dictionaryId,
+              group_id: attr.group_id,
+              group_name: attr.group_name,
+              is_required: attr.is_required,
+              is_collection: isCollection,
+              max_value_count: attr.max_value_count,
+              values: options,
+            };
+          })
+        );
+        
+        setCategoryAttributes(attrsWithOptions);
+        
+        // 初始化已选属性 - 支持单选和多选
+        if (record.attributes) {
+          const initialSelected: Record<number, number | number[]> = {};
+          record.attributes.forEach((attr: ProductAttribute) => {
+            if (attr.value_id) {
+              if (attr.is_collection || (attr.max_value_count && attr.max_value_count > 1)) {
+                // 多选：value_id可能是逗号分隔的字符串
+                const ids = String(attr.value_id).split(',').map(Number);
+                initialSelected[attr.attribute_id] = ids;
+              } else {
+                initialSelected[attr.attribute_id] = attr.value_id as number;
+              }
+            }
+          });
+          setEditingAttributes(initialSelected as Record<number, number | number[]>);
+        } else {
+          setEditingAttributes({});
+        }
+      } catch (error) {
+        console.error('Failed to load category attributes:', error);
+        message.warning('加载属性选项失败，请稍后重试');
+        setCategoryAttributes([]);
+      } finally {
+        setAttributesLoading(false);
+      }
+    } else {
+      setCategoryAttributes([]);
+      setEditingAttributes({});
+    }
+    
+    setEditVisible(true);
+  };
+
+  // 属性值变化 - 支持单选number和多选number[]
+  const handleAttributeChange = (attributeId: number, value: number | number[]) => {
+    setEditingAttributes(prev => ({
+      ...prev,
+      [attributeId]: value,
+    }));
+  };
+
+  // 刷新属性选项 - 使用新的description-category API
+  const refreshAttributes = async () => {
+    if (!editingProduct?.category_id || !editingProduct?.type_id) return;
+    
+    setAttributesLoading(true);
+    try {
+      const attrs = await ozonApi.getDescriptionCategoryAttribute({
+        description_category_id: editingProduct.category_id,
+        type_id: editingProduct.type_id,
+      });
+      
+      const attrsWithOptions: ProductAttribute[] = await Promise.all(
+        (attrs as any[]).map(async (attr: any) => {
+          const attributeType = attr.type || attr.attribute_type;
+          const dictionaryId = attr.dictionary_id;
+          const isCollection = attr.is_collection || (attr.max_value_count && attr.max_value_count > 1);
+          
+          let options: AttributeOption[] = [];
+          if (dictionaryId && dictionaryId > 0) {
+            try {
+              const values = await ozonApi.getDescriptionCategoryAttributeValues({
+                description_category_id: editingProduct.category_id!,
+                type_id: editingProduct.type_id!,
+                attribute_id: attr.attribute_id,
+              });
+              options = (values as any[]).map((v: any) => ({
+                value_id: v.value_id,
+                value: v.value,
+                info: v.info,
+                picture: v.picture,
+              }));
+            } catch (e) {
+              console.error(`Failed to load values for attribute ${attr.attribute_id}:`, e);
+            }
+          }
+          
+          return {
+            attribute_id: attr.attribute_id,
+            name: attr.name,
+            attribute_name: attr.attribute_name || attr.name,
+            type: attributeType,
+            attribute_type: attributeType,
+            dictionary_id: dictionaryId,
+            group_id: attr.group_id,
+            group_name: attr.group_name,
+            is_required: attr.is_required,
+            is_collection: isCollection,
+            max_value_count: attr.max_value_count,
+            values: options,
+          };
+        })
+      );
+      
+      setCategoryAttributes(attrsWithOptions);
+      message.success('属性选项已刷新');
+    } catch (error) {
+      message.error('刷新属性失败');
+    } finally {
+      setAttributesLoading(false);
+    }
+  };
+
+  // 保存编辑
+  const handleSaveEdit = async () => {
+    try {
+      const values = await editForm.validateFields();
+      
+      // 构建属性数据 - 支持单选和多选
+      const updatedAttributes: ProductAttribute[] = Object.entries(editingAttributes)
+        .filter(([_, value]) => value)
+        .map(([attrId, value]) => {
+          const attr = categoryAttributes.find(a => a.attribute_id === Number(attrId));
+          const isMultiSelect = attr?.is_collection || (attr?.max_value_count && attr.max_value_count > 1);
+          
+          // 处理值
+          let valueId: number | string;
+          let valueText: string;
+          
+          if (isMultiSelect && Array.isArray(value)) {
+            // 多选：逗号分隔的ID
+            valueId = value.join(',');
+            // 获取所有选中项的文本
+            const texts = value.map(vid => attr?.values?.find(v => v.value_id === vid)?.value).filter(Boolean);
+            valueText = texts.join(', ');
+          } else if (typeof value === 'number') {
+            // 单选
+            valueId = value;
+            valueText = attr?.values?.find(v => v.value_id === value)?.value || '';
+          } else {
+            // 文本输入
+            valueId = 0;
+            valueText = String(value);
+          }
+          
+          return {
+            attribute_id: Number(attrId),
+            attribute_name: attr?.attribute_name || attr?.name || '',
+            attribute_type: attr?.attribute_type || attr?.type || '',
+            dictionary_id: attr?.dictionary_id,
+            group_name: attr?.group_name,
+            is_required: attr?.is_required,
+            is_collection: attr?.is_collection,
+            max_value_count: attr?.max_value_count,
+            value_id: valueId,
+            value: valueText,
+          };
+        });
+      
+      // 更新本地数据
+      const updatedProducts = products.map(p => {
+        if (p.id === editingProduct?.id) {
+          // 重新计算利润率
+          const sourcePrice = p.source_price || 0;
+          const newPrice = values.ozon_price;
+          const cost = sourcePrice * 13 * 1.2; // 成本核算
+          const newProfitRate = ((newPrice - cost) / newPrice) * 100;
+          
+          return {
+            ...p,
+            ozon_price: values.ozon_price,
+            ozon_stock: values.ozon_stock,
+            profit_rate: newProfitRate,
+            attributes: updatedAttributes,
+          };
+        }
+        return p;
+      });
+      
+      setProducts(updatedProducts);
+      setFilteredProducts(updatedProducts);
+      message.success('商品信息已更新');
+      setEditVisible(false);
+      
+      // TODO: 调用API保存到后端
+      // try {
+      //   await ozonApi.updateDbProduct(editingProduct!.id, {
+      //     ozon_price: values.ozon_price,
+      //     ozon_stock: values.ozon_stock,
+      //     attributes: updatedAttributes,
+      //   });
+      // } catch (e) {
+      //   console.error('Failed to sync to backend:', e);
+      // }
+    } catch (error) {
+      console.error('Failed to save:', error);
+    }
+  };
+
+  const columns: ColumnsType<OzonProduct> = [
+    {
+      title: 'SKU',
+      dataIndex: 'sku',
+      key: 'sku',
+      width: 180,
+    },
+    {
+      title: 'SPU',
+      dataIndex: 'spu',
+      key: 'spu',
+      width: 150,
+    },
+    {
+      title: '商品名称',
+      dataIndex: 'title',
+      key: 'title',
+      ellipsis: true,
+      width: 250,
+    },
+    {
+      title: '采购价(¥)',
+      dataIndex: 'source_price',
+      key: 'source_price',
+      width: 100,
+      render: (price: number) => price ? `¥${price.toFixed(2)}` : '-',
+    },
+    {
+      title: 'Ozon售价(₽)',
+      dataIndex: 'ozon_price',
+      key: 'ozon_price',
+      width: 100,
+      render: (price: number) => `₽${price?.toFixed(2) || 0}`,
+    },
+    {
+      title: '库存',
+      dataIndex: 'ozon_stock',
+      key: 'ozon_stock',
+      width: 80,
+      render: (stock: number) => (
+        <Tooltip title={stock < 10 ? '库存不足' : ''}>
+          <span style={{ color: stock < 10 ? '#ff4d4f' : undefined }}>
+            {stock}
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      title: '利润率',
+      dataIndex: 'profit_rate',
+      key: 'profit_rate',
+      width: 100,
+      render: (rate: number) => getProfitTag(rate),
+    },
+    {
+      title: '30天销量',
+      dataIndex: 'sales_30d',
+      key: 'sales_30d',
+      width: 90,
+    },
+    {
+      title: '状态',
+      dataIndex: 'platform_status',
+      key: 'platform_status',
+      width: 80,
+      render: (status: string) => getStatusTag(status),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 120,
+      render: (_, record) => (
+        <Space>
+          <Button 
+            type="link" 
+            icon={<EyeOutlined />}
+            onClick={() => {
+              setSelectedProduct(record);
+              setDetailVisible(true);
+            }}
+          >
+            详情
+          </Button>
+          <Button 
+            type="link" 
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
+            编辑
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  // 计算统计
+  const totalSales = products.reduce((sum, p) => sum + p.sales_30d, 0);
+  const avgProfit = products.length > 0 ? products.reduce((sum, p) => sum + p.profit_rate, 0) / products.length : 0;
+  const lowStock = products.filter(p => p.ozon_stock < 10).length;
+
+  return (
+    <div style={{ padding: '24px' }}>
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic 
+              title="Ozon商品总数" 
+              value={products.length} 
+              prefix={<ShopOutlined />} 
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic 
+              title="30天总销量" 
+              value={totalSales} 
+              prefix={<StockOutlined />} 
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic 
+              title="平均利润率" 
+              value={avgProfit.toFixed(1)} 
+              suffix="%"
+              valueStyle={{ color: avgProfit >= 20 ? '#52c41a' : '#faad14' }}
+              prefix={<DollarOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic 
+              title="低库存预警" 
+              value={lowStock} 
+              valueStyle={{ color: lowStock > 0 ? '#ff4d4f' : undefined }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Card 
+        title="Ozon商品列表"
+        extra={
+          <Space>
+            <Search
+              placeholder="搜索SKU或商品名称"
+              onSearch={setSearchText}
+              style={{ width: 250 }}
+              allowClear
+            />
+            <Button icon={<SyncOutlined />}>同步Ozon</Button>
+          </Space>
+        }
+      >
+        <Table
+          columns={columns}
+          dataSource={filteredProducts}
+          rowKey="id"
+          loading={loading}
+          scroll={{ x: 1500 }}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `共 ${total} 条`,
+          }}
+        />
+      </Card>
+
+      {/* 详情弹窗 */}
+      <Modal
+        title="商品详情"
+        open={detailVisible}
+        onCancel={() => setDetailVisible(false)}
+        footer={null}
+        width={700}
+      >
+        {selectedProduct && (
+          <Descriptions column={2} bordered size="small">
+            <Descriptions.Item label="SKU" span={2}>
+              {selectedProduct.sku}
+            </Descriptions.Item>
+            <Descriptions.Item label="SPU" span={2}>
+              {selectedProduct.spu}
+            </Descriptions.Item>
+            <Descriptions.Item label="商品名称" span={2}>
+              {selectedProduct.title}
+            </Descriptions.Item>
+            <Descriptions.Item label="采购价">
+              ¥{selectedProduct.source_price?.toFixed(2)}
+            </Descriptions.Item>
+            <Descriptions.Item label="供应商">
+              {selectedProduct.source_supplier || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ozon商品ID">
+              {selectedProduct.ozon_product_id}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ozon售价">
+              ₽{selectedProduct.ozon_price?.toFixed(2)}
+            </Descriptions.Item>
+            <Descriptions.Item label="库存">
+              {selectedProduct.ozon_stock}
+            </Descriptions.Item>
+            <Descriptions.Item label="状态">
+              {getStatusTag(selectedProduct.platform_status)}
+            </Descriptions.Item>
+            <Descriptions.Item label="利润率">
+              {selectedProduct.profit_rate}%
+            </Descriptions.Item>
+            <Descriptions.Item label="30天销量">
+              {selectedProduct.sales_30d}
+            </Descriptions.Item>
+            <Descriptions.Item label="最后同步" span={2}>
+              {selectedProduct.last_synced}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
+
+      {/* 编辑弹窗 */}
+      <Modal
+        title="编辑商品"
+        open={editVisible}
+        onCancel={() => setEditVisible(false)}
+        onOk={handleSaveEdit}
+        okText="保存"
+        width={500}
+      >
+        {editingProduct && (
+          <Form form={editForm} layout="vertical">
+            <Descriptions column={1} bordered size="small">
+              <Descriptions.Item label="SKU">
+                {editingProduct.sku}
+              </Descriptions.Item>
+              <Descriptions.Item label="商品名称">
+                {editingProduct.title}
+              </Descriptions.Item>
+              <Descriptions.Item label="采购价">
+                ¥{editingProduct.source_price?.toFixed(2)}
+              </Descriptions.Item>
+              <Descriptions.Item label="供应商">
+                {editingProduct.source_supplier || '-'}
+              </Descriptions.Item>
+            </Descriptions>
+            
+            <div style={{ marginTop: 16 }}>
+              <Form.Item 
+                name="ozon_price" 
+                label="Ozon售价 (₽)"
+                rules={[{ required: true, message: '请输入售价' }]}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  step={10}
+                  placeholder="请输入Ozon售价"
+                />
+              </Form.Item>
+              
+              <Form.Item 
+                name="ozon_stock" 
+                label="库存数量"
+                rules={[{ required: true, message: '请输入库存' }]}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  placeholder="请输入库存数量"
+                />
+              </Form.Item>
+            </div>
+            
+            {/* 商品属性编辑 */}
+            {editingProduct?.category_id && editingProduct?.type_id && (
+              <div style={{ marginTop: 24 }}>
+                <Divider orientation="left">商品属性</Divider>
+                <Spin spinning={attributesLoading}>
+                  {categoryAttributes.length > 0 ? (
+                    <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                      {/* 按分组显示属性 */}
+                      {(() => {
+                        // 按分组整理属性
+                        const groups: Record<string, ProductAttribute[]> = {};
+                        categoryAttributes.forEach(attr => {
+                          const groupName = attr.group_name || '其他属性';
+                          if (!groups[groupName]) {
+                            groups[groupName] = [];
+                          }
+                          groups[groupName].push(attr);
+                        });
+                        
+                        return Object.entries(groups).map(([groupName, attrs]) => (
+                          <div key={groupName} style={{ marginBottom: 16 }}>
+                            {Object.keys(groups).length > 1 && (
+                              <div style={{ fontWeight: 'bold', marginBottom: 8, color: '#1890ff' }}>
+                                {groupName}
+                              </div>
+                            )}
+                            {attrs.map((attr) => {
+                              // 判断控件类型
+                              const attributeType = attr.type || attr.attribute_type;
+                              const hasDictionary = attr.dictionary_id && attr.dictionary_id > 0;
+                              const isMultiSelect = attr.is_collection || (attr.max_value_count && attr.max_value_count > 1);
+                              
+                              // 渲染不同的控件
+                              const renderControl = () => {
+                                // 文本输入类型
+                                if (!hasDictionary) {
+                                  if (attributeType === 'Integer' || attributeType === 'Decimal') {
+                                    return (
+                                      <InputNumber
+                                        style={{ width: '100%' }}
+                                        placeholder={`请输入${attr.attribute_name}`}
+                                        value={(editingAttributes[attr.attribute_id] as number) || undefined}
+                                        onChange={(value) => handleAttributeChange(attr.attribute_id, value as number)}
+                                      />
+                                    );
+                                  }
+                                  // 默认文本输入
+                                  return (
+                                    <Input
+                                      placeholder={`请输入${attr.attribute_name}`}
+                                      value={(editingAttributes[attr.attribute_id] as number) || undefined}
+                                      onChange={(e) => handleAttributeChange(attr.attribute_id, e.target.value as any)}
+                                    />
+                                  );
+                                }
+                                
+                                // 有选项的类型
+                                if (isMultiSelect) {
+                                  // 多选
+                                  const selectedValues = (editingAttributes[attr.attribute_id] as number[]) || [];
+                                  return (
+                                    <Checkbox.Group
+                                      value={selectedValues}
+                                      onChange={(vals) => handleAttributeChange(attr.attribute_id, vals as number[])}
+                                      style={{ width: '100%' }}
+                                    >
+                                      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                                        {attr.values?.map((option) => (
+                                          <Checkbox key={option.value_id} value={option.value_id}>
+                                            {option.picture && (
+                                              <img src={option.picture} alt="" style={{ width: 20, height: 20, marginRight: 4, verticalAlign: 'middle' }} />
+                                            )}
+                                            {option.value}
+                                          </Checkbox>
+                                        ))}
+                                      </div>
+                                    </Checkbox.Group>
+                                  );
+                                }
+                                
+                                // 单选
+                                return (
+                                  <Select
+                                    placeholder={`请选择${attr.attribute_name}`}
+                                    value={editingAttributes[attr.attribute_id] as number}
+                                    onChange={(value) => handleAttributeChange(attr.attribute_id, value)}
+                                    allowClear
+                                    style={{ width: '100%' }}
+                                  >
+                                    {attr.values?.map((option) => (
+                                      <Select.Option
+                                        key={option.value_id}
+                                        value={option.value_id}
+                                      >
+                                        {option.picture && (
+                                          <img src={option.picture} alt="" style={{ width: 20, height: 20, marginRight: 8, verticalAlign: 'middle' }} />
+                                        )}
+                                        {option.value}
+                                      </Select.Option>
+                                    ))}
+                                  </Select>
+                                );
+                              };
+                              
+                              return (
+                                <Form.Item
+                                  key={attr.attribute_id}
+                                  label={attr.attribute_name}
+                                  required={attr.is_required}
+                                  style={{ marginBottom: 12 }}
+                                >
+                                  {renderControl()}
+                                </Form.Item>
+                              );
+                            })}
+                          </div>
+                        ));
+                      })()}
+                      
+                      <div style={{ marginTop: 8 }}>
+                        <Button 
+                          type="link" 
+                          icon={<ReloadOutlined />} 
+                          onClick={refreshAttributes}
+                          size="small"
+                        >
+                          刷新属性选项
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: 24, color: '#999' }}>
+                      {attributesLoading ? '加载中...' : '暂无属性'}
+                      {!attributesLoading && (
+                        <Button 
+                          type="link" 
+                          onClick={refreshAttributes}
+                          style={{ marginLeft: 8 }}
+                        >
+                          点击加载
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </Spin>
+              </div>
+            )}
+            
+            {/* 无分类信息提示 */}
+            {editingProduct && (!editingProduct.category_id || !editingProduct.type_id) && (
+              <div style={{ marginTop: 16, padding: 12, background: '#fff7e6', borderRadius: 4, fontSize: 12, color: '#fa8c16' }}>
+                ⚠️ 该商品缺少分类信息，无法编辑属性。请先同步商品分类。
+              </div>
+            )}
+          </Form>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default OzonProductsPage;
