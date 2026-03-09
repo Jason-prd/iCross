@@ -1,7 +1,8 @@
 """
-Ozon平台集成模块
+Ozon Platform Integration Module
 
-提供与Ozon电商平台的API集成功能，包括商品管理、分类管理、订单同步等。
+Provides API integration functionality with Ozon e-commerce platform,
+including product management, category management, order synchronization, etc.
 """
 
 from .adapter import OzonIntegrationAdapter

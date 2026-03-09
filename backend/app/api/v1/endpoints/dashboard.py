@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-运营仪表盘API端点 - 同步版本
+Operations Dashboard API Endpoint - Sync Version
 """
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
@@ -11,9 +12,9 @@ from typing import List
 
 from app.models.database import Product, PlatformProduct
 
-router = APIRouter(tags=["运营仪表盘"])
+router = APIRouter(tags=["Operations Dashboard"])
 
-# 使用同步数据库
+# Use sync database
 SYNC_DATABASE_URL = "sqlite:///./icross_dev.db"
 sync_engine = create_engine(SYNC_DATABASE_URL)
 SyncSession = sessionmaker(bind=sync_engine)
@@ -48,25 +49,25 @@ class DashboardStats(BaseModel):
 
 @router.get("/stats", response_model=DashboardStats)
 def get_dashboard_stats(db: Session = Depends(get_db)):
-    """获取运营仪表盘统计数据"""
-    # 选品统计
+    """Get operations dashboard stats"""
+    # Selection stats
     selection_total = db.query(Product).count()
-    selection_selected = db.query(Product).filter(
-        Product.selection_status == "selected"
-    ).count()
-    selection_pending = db.query(Product).filter(
-        Product.listing_status == "pending"
-    ).count()
-    selection_listed = db.query(Product).filter(
-        Product.listing_status == "listed"
-    ).count()
-    
-    # 商品统计
+    selection_selected = (
+        db.query(Product).filter(Product.selection_status == "selected").count()
+    )
+    selection_pending = (
+        db.query(Product).filter(Product.listing_status == "pending").count()
+    )
+    selection_listed = (
+        db.query(Product).filter(Product.listing_status == "listed").count()
+    )
+
+    # Product stats
     product_total = db.query(PlatformProduct).count()
-    product_low_stock = db.query(PlatformProduct).filter(
-        PlatformProduct.platform_stock < 10
-    ).count()
-    
+    product_low_stock = (
+        db.query(PlatformProduct).filter(PlatformProduct.platform_stock < 10).count()
+    )
+
     return {
         "selection_total": selection_total,
         "selection_selected": selection_selected,
@@ -89,25 +90,30 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
 
 @router.get("/low-stock")
 def get_low_stock_products(limit: int = 10, db: Session = Depends(get_db)):
-    """获取低库存商品"""
-    products = db.query(PlatformProduct).filter(
-        PlatformProduct.platform_stock < 10
-    ).limit(limit).all()
-    
+    """Get low stock products"""
+    products = (
+        db.query(PlatformProduct)
+        .filter(PlatformProduct.platform_stock < 10)
+        .limit(limit)
+        .all()
+    )
+
     result = []
     for p in products:
-        result.append({
-            "sku": p.platform_sku,
-            "name": p.platform_title or "",
-            "stock": p.platform_stock,
-            "threshold": 10
-        })
-    
+        result.append(
+            {
+                "sku": p.platform_sku,
+                "name": p.platform_title or "",
+                "stock": p.platform_stock,
+                "threshold": 10,
+            }
+        )
+
     return result
 
 
 @router.get("/recent-orders")
 def get_recent_orders(limit: int = 5, db: Session = Depends(get_db)):
-    """获取最近订单"""
-    # 暂时返回空列表
+    """Get recent orders"""
+    # Return empty list for now
     return []

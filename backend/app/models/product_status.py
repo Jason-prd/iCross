@@ -1,57 +1,57 @@
 # -*- coding: utf-8 -*-
 """
-iCross 商品状态管理
-定义商品的生命周期状态
+iCross Product Status Management
+Defines product lifecycle states
 """
 
 from enum import Enum
 
 
 class ProductStatus(str, Enum):
-    """商品状态枚举"""
-    
-    # 选品阶段
-    DRAFT = "draft"              # 草稿/未选品
-    SELECTED = "selected"         # 已选品（待上架）
-    
-    # 上架阶段
-    LISTING = "listing"          # 上架中
-    LISTED = "listed"            # 已上架
-    
-    # 销售阶段
-    OUT_OF_STOCK = "out_of_stock"  # 缺货
-    ARCHIVED = "archived"        # 已归档
-    
-    # 异常
-    ERROR = "error"              # 异常
+    """Product status enum"""
+
+    # Selection phase
+    DRAFT = "draft"  # Draft/Not selected
+    SELECTED = "selected"  # Selected (pending listing)
+
+    # Listing phase
+    LISTING = "listing"  # Listing in progress
+    LISTED = "listed"  # Listed
+
+    # Sales phase
+    OUT_OF_STOCK = "out_of_stock"  # Out of stock
+    ARCHIVED = "archived"  # Archived
+
+    # Error
+    ERROR = "error"  # Error
 
 
 class ListingStatus(str, Enum):
-    """上架状态"""
-    
-    NOT_LISTED = "not_listed"       # 未上架
-    PENDING = "pending"              # 待上架
-    LISTING = "listing"              # 上架中
-    LISTED = "listed"                # 已上架
-    DELISTED = "delisted"            # 已下架
-    ARCHIVED = "archived"            # 已归档
+    """Listing status"""
+
+    NOT_LISTED = "not_listed"  # Not listed
+    PENDING = "pending"  # Pending listing
+    LISTING = "listing"  # Listing in progress
+    LISTED = "listed"  # Listed
+    DELISTED = "delisted"  # Delisted
+    ARCHIVED = "archived"  # Archived
 
 
-# 状态显示名称
+# Status display names
 STATUS_DISPLAY = {
-    "draft": "未选品",
-    "selected": "已选品",
-    "listing": "上架中",
-    "listed": "已上架",
-    "out_of_stock": "缺货",
-    "archived": "已归档",
-    "error": "异常",
-    "not_listed": "未上架",
-    "pending": "待上架",
-    "delisted": "已下架",
+    "draft": "Not Selected",
+    "selected": "Selected",
+    "listing": "Listing",
+    "listed": "Listed",
+    "out_of_stock": "Out of Stock",
+    "archived": "Archived",
+    "error": "Error",
+    "not_listed": "Not Listed",
+    "pending": "Pending",
+    "delisted": "Delisted",
 }
 
-# 状态流程
+# Status flow
 STATUS_FLOW = {
     "draft": ["selected", "error"],
     "selected": ["listing", "archived", "error"],
@@ -65,11 +65,11 @@ STATUS_FLOW = {
 
 
 def can_transition(from_status: str, to_status: str) -> bool:
-    """检查状态是否可以转换"""
+    """Check if status can transition"""
     allowed = STATUS_FLOW.get(from_status, [])
     return to_status in allowed
 
 
 def get_display_status(status: str) -> str:
-    """获取状态的显示名称"""
+    """Get display name for status"""
     return STATUS_DISPLAY.get(status, status)

@@ -32,10 +32,9 @@ from app.models.database import (
 def convert_db_to_integration_product(
     db_product: OzonProduct,
 ) -> OzonProductIntegration:
-    """转换数据库Ozon商品模型为集成模型"""
+    """Convert database Ozon product model to integration model"""
     import json
 
-    # 解析images - 可能存储为JSON字符串
     image_list = []
     images_data = db_product.images
     if isinstance(images_data, str):
@@ -51,10 +50,8 @@ def convert_db_to_integration_product(
         else:
             image_list.append(str(img_url))
 
-    # 获取主图
     primary_image = db_product.primary_image or (image_list[0] if image_list else "")
 
-    # 解析barcodes - 可能存储为JSON字符串
     barcode_list = []
     barcodes_data = db_product.barcodes
     if isinstance(barcodes_data, str):
@@ -68,7 +65,6 @@ def convert_db_to_integration_product(
         else:
             barcode_list.append(str(bc))
 
-    # 解析attributes - 可能存储为JSON字符串
     attrs_data = db_product.attributes
     if isinstance(attrs_data, str):
         try:
@@ -117,28 +113,28 @@ router = APIRouter(tags=["ozon"])
 
 
 class OzonConnectionTestResponse(BaseModel):
-    """Ozon连接测试响应"""
+    """Ozon connection test response"""
 
-    connected: bool = Field(..., description="连接状态")
-    message: str = Field(..., description="消息")
-    categories_count: Optional[int] = Field(None, description="分类数量")
-    products_count: Optional[int] = Field(None, description="商品数量")
+    connected: bool = Field(..., description="Connection status")
+    message: str = Field(..., description="Message")
+    categories_count: Optional[int] = Field(None, description="Categories count")
+    products_count: Optional[int] = Field(None, description="Products count")
 
 
 class OzonProductResponse(BaseModel):
-    """Ozon商品响应"""
+    """Ozon product response"""
 
-    product_id: Optional[int] = Field(None, description="商品ID")
-    offer_id: str = Field(..., description="货号")
-    name: str = Field(..., description="商品名称")
-    price: float = Field(..., description="价格")
-    quantity: int = Field(..., description="库存数量")
-    visibility: str = Field(..., description="可见性")
-    category_id: Optional[int] = Field(None, description="分类ID")
+    product_id: Optional[int] = Field(None, description="Product ID")
+    offer_id: str = Field(..., description="Offer ID")
+    name: str = Field(..., description="Product name")
+    price: float = Field(..., description="Price")
+    quantity: int = Field(..., description="Stock quantity")
+    visibility: str = Field(..., description="Visibility")
+    category_id: Optional[int] = Field(None, description="Category ID")
 
 
 class OzonProductUpdateRequest(BaseModel):
-    """Ozon商品更新请求"""
+    """Ozon product update request"""
 
     title: Optional[str] = None
     description: Optional[str] = None
@@ -172,7 +168,7 @@ class OzonProductUpdateRequest(BaseModel):
 
 
 class OzonProductDbResponse(BaseModel):
-    """Ozon商品数据库响应"""
+    """Ozon product database response"""
 
     id: str
     ozon_product_id: int
@@ -217,17 +213,17 @@ class OzonProductDbResponse(BaseModel):
 
 
 class OzonCategoryResponse(BaseModel):
-    """Ozon分类响应"""
+    """Ozon category response"""
 
-    id: int = Field(..., description="分类ID")
-    name: str = Field(..., description="分类名称")
-    parent_id: Optional[int] = Field(None, description="父分类ID")
-    has_children: bool = Field(..., description="是否有子分类")
-    description: Optional[str] = Field(None, description="分类描述")
+    id: int = Field(..., description="Category ID")
+    name: str = Field(..., description="Category name")
+    parent_id: Optional[int] = Field(None, description="Parent category ID")
+    has_children: bool = Field(..., description="Has children")
+    description: Optional[str] = Field(None, description="Category description")
 
 
 class OzonSyncResponse(BaseModel):
-    """Ozon同步响应"""
+    """Ozon sync response"""
 
     success: bool
     synced: int = 0
@@ -237,7 +233,7 @@ class OzonSyncResponse(BaseModel):
 
 
 class PaginatedOzonResponse(BaseModel):
-    """Ozon商品分页响应"""
+    """Ozon product paginated response"""
 
     data: List[OzonProductDbResponse]
     meta: Dict[str, Any]
@@ -245,14 +241,14 @@ class PaginatedOzonResponse(BaseModel):
 
 @router.get("/test-connection", response_model=OzonConnectionTestResponse)
 async def test_ozon_connection(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OzonConnectionTestResponse:
     """
-    测试Ozon API连接
+    Test Ozon API connection
 
-    验证Ozon API凭证和连接状态。
+    Verify Ozon API credentials and connection status.
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -262,7 +258,7 @@ async def test_ozon_connection(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -276,7 +272,7 @@ async def test_ozon_connection(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -286,7 +282,8 @@ async def test_ozon_connection(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -295,7 +292,8 @@ async def test_ozon_connection(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -305,7 +303,7 @@ async def test_ozon_connection(
 
             return OzonConnectionTestResponse(
                 connected=success,
-                message="连接成功" if success else "连接失败",
+                message="Connection successful" if success else "Connection failed",
                 categories_count=None,
                 products_count=None,
             )
@@ -313,25 +311,25 @@ async def test_ozon_connection(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"连接失败: {e.message}",
+            detail=f"Connection failed: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"未知错误: {str(e)}",
+            detail=f"Unknown error: {str(e)}",
         )
 
 
 @router.get("/categories", response_model=List[OzonCategoryResponse])
 async def get_ozon_categories(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[OzonCategoryResponse]:
     """
-    获取Ozon分类树
+    Get Ozon category tree
 
-    获取Ozon平台的商品分类树结构。
+    Get product category tree structure from Ozon platform.
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -341,7 +339,7 @@ async def get_ozon_categories(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -355,7 +353,7 @@ async def get_ozon_categories(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -365,7 +363,8 @@ async def get_ozon_categories(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -374,7 +373,8 @@ async def get_ozon_categories(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -384,12 +384,10 @@ async def get_ozon_categories(
 
             result = []
             for cat in categories:
-                # Try to get category name from different sources
                 cat_name = cat.name
                 if not cat_name and cat.raw_data:
                     cat_name = cat.raw_data.get("category_name", "")
 
-                # Get description_category_id from raw_data
                 cat_id = cat.id
                 if not cat_id and cat.raw_data:
                     cat_id = cat.raw_data.get("description_category_id", 0)
@@ -409,17 +407,17 @@ async def get_ozon_categories(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取Ozon分类失败: {e.message}",
+            detail=f"Failed to get Ozon categories: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"未知错误: {str(e)}",
+            detail=f"Unknown error: {str(e)}",
         )
 
 
 class OzonCategoryTreeResponse(BaseModel):
-    """Ozon分类树响应"""
+    """Ozon category tree response"""
 
     id: str
     description_category_id: int
@@ -438,7 +436,7 @@ class OzonCategoryTreeResponse(BaseModel):
 
 
 class OzonCategoryAttributeResponse(BaseModel):
-    """Ozon分类属性响应"""
+    """Ozon category attribute response"""
 
     id: str
     description_category_id: int
@@ -459,7 +457,7 @@ class OzonCategoryAttributeResponse(BaseModel):
 
 
 class OzonAttributeValueResponse(BaseModel):
-    """Ozon属性值响应"""
+    """Ozon attribute value response"""
 
     id: str
     description_category_id: int
@@ -476,7 +474,7 @@ class OzonAttributeValueResponse(BaseModel):
 
 
 class OzonCategorySyncResponse(BaseModel):
-    """Ozon分类同步响应"""
+    """Ozon category sync response"""
 
     success: bool
     categories_count: int = 0
@@ -489,18 +487,18 @@ class OzonCategorySyncResponse(BaseModel):
 @router.post("/sync-category-tree", response_model=OzonCategorySyncResponse)
 async def sync_ozon_category_tree(
     language: Optional[str] = Query(
-        default="ZH_HANS", description="语言: ZH_HANS/EN/RU"
+        default="ZH_HANS", description="Language: ZH_HANS/EN/RU"
     ),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
-    sync_all: bool = Query(default=False, description="是否同步所有语言"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
+    sync_all: bool = Query(default=False, description="Whether to sync all languages"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OzonCategorySyncResponse:
     """
-    同步Ozon分类树到本地数据库
+    Sync Ozon category tree to local database
 
-    - language: 指定语言 (ZH_HANS/EN/RU)
-    - sync_all: 是否同步所有三种语言
+    - language: Specify language (ZH_HANS/EN/RU)
+    - sync_all: Whether to sync all three languages
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -510,7 +508,7 @@ async def sync_ozon_category_tree(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -524,7 +522,7 @@ async def sync_ozon_category_tree(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -534,7 +532,8 @@ async def sync_ozon_category_tree(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -543,7 +542,8 @@ async def sync_ozon_category_tree(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -640,33 +640,33 @@ async def sync_ozon_category_tree(
             return OzonCategorySyncResponse(
                 success=True,
                 categories_count=total_categories,
-                message=f"同步完成: 共{total_categories}个分类 ({', '.join(languages_to_sync)})",
+                message=f"Sync completed: {total_categories} categories ({', '.join(languages_to_sync)})",
                 languages=languages_to_sync,
             )
 
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"同步分类树失败: {e.message}",
+            detail=f"Failed to sync category tree: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"未知错误: {str(e)}",
+            detail=f"Unknown error: {str(e)}",
         )
 
 
 @router.get("/category-tree", response_model=List[OzonCategoryTreeResponse])
 async def get_ozon_category_tree(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
-    parent_id: Optional[int] = Query(default=None, description="父分类ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
+    parent_id: Optional[int] = Query(default=None, description="Parent category ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[OzonCategoryTreeResponse]:
     """
-    获取本地存储的Ozon分类树（扁平格式）
-    - 不传parent_id时返回所有一级分类
-    - 传parent_id时返回该分类下的直接子节点
+    Get locally stored Ozon category tree (flattened format)
+    - Returns all top-level categories when parent_id is not provided
+    - Returns direct child nodes when parent_id is provided
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -676,19 +676,16 @@ async def get_ozon_category_tree(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
-    # 查询所有分类
     result = await db.execute(
         select(OzonCategoryTree).where(OzonCategoryTree.team_id == member.team_id)
     )
     all_categories = result.scalars().all()
 
-    # 如果传了parent_id，查询该分类下的直接子节点
     if parent_id is not None:
         root_cats = [c for c in all_categories if c.parent_id == parent_id]
     else:
-        # 否则查询一级分类（parent_id为None的）
         root_cats = [c for c in all_categories if c.parent_id is None]
 
     return [
@@ -711,13 +708,13 @@ async def get_ozon_category_tree(
 
 @router.get("/category-tree/nested", response_model=List[dict])
 async def get_ozon_category_tree_nested(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[dict]:
     """
-    获取本地存储的Ozon分类树（嵌套三层结构）
-    返回格式：鞋类 > 运动鞋和工作鞋 > 举重鞋/冰壶鞋
+    Get locally stored Ozon category tree (nested 3-level structure)
+    Format: Shoes > Sneakers and Athletic Shoes > Lifting Shoes/Curl Shoes
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -727,16 +724,15 @@ async def get_ozon_category_tree_nested(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
-    # 查询所有分类
     result = await db.execute(
         select(OzonCategoryTree).where(OzonCategoryTree.team_id == member.team_id)
     )
     all_categories = result.scalars().all()
 
     def build_tree_node(cat) -> dict:
-        """递归构建树节点"""
+        """Recursively build tree node"""
         children_data = cat.children or []
         tree_children = []
 
@@ -764,7 +760,6 @@ async def get_ozon_category_tree_nested(
                 "updated_at": cat.updated_at.isoformat(),
             }
 
-            # 递归处理三级节点
             if child_children:
                 for grandchild_data in child_children:
                     grandchild_type_id = grandchild_data.get("type_id")
@@ -806,19 +801,18 @@ async def get_ozon_category_tree_nested(
             "updated_at": cat.updated_at.isoformat(),
         }
 
-    # 查询一级分类
     root_cats = [c for c in all_categories if c.parent_id is None]
     return [build_tree_node(c) for c in root_cats]
 
 
 @router.get("/category-tree/all", response_model=List[OzonCategoryTreeResponse])
 async def get_all_ozon_category_tree(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[OzonCategoryTreeResponse]:
     """
-    获取所有本地存储的Ozon分类
+    Get all locally stored Ozon categories
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -828,7 +822,7 @@ async def get_all_ozon_category_tree(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonCategoryTree).where(OzonCategoryTree.team_id == member.team_id)
@@ -856,12 +850,12 @@ async def get_all_ozon_category_tree(
 @router.get("/category-tree/{category_id}", response_model=OzonCategoryTreeResponse)
 async def get_ozon_category_by_id(
     category_id: int,
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OzonCategoryTreeResponse:
     """
-    根据分类ID获取本地存储的Ozon分类
+    Get locally stored Ozon category by ID
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -871,7 +865,7 @@ async def get_ozon_category_by_id(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonCategoryTree).where(
@@ -884,7 +878,7 @@ async def get_ozon_category_by_id(
     category = result.scalar_one_or_none()
 
     if not category:
-        raise HTTPException(status_code=404, detail="分类不存在")
+        raise HTTPException(status_code=404, detail="Category does not exist")
 
     return OzonCategoryTreeResponse(
         id=category.id,
@@ -907,12 +901,12 @@ async def get_ozon_category_by_id(
     "/category-attributes/all", response_model=List[OzonCategoryAttributeResponse]
 )
 async def get_all_ozon_category_attributes(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[OzonCategoryAttributeResponse]:
     """
-    获取所有本地存储的Ozon分类属性
+    Get all locally stored Ozon category attributes
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -922,7 +916,7 @@ async def get_all_ozon_category_attributes(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonCategoryAttribute).where(
@@ -953,18 +947,18 @@ async def get_all_ozon_category_attributes(
 
 @router.post("/sync-category-attributes", response_model=OzonCategorySyncResponse)
 async def sync_ozon_category_attributes(
-    description_category_id: int = Query(..., description="分类ID"),
-    type_id: int = Query(..., description="类型ID"),
+    description_category_id: int = Query(..., description="Category ID"),
+    type_id: int = Query(..., description="Type ID"),
     language: Optional[str] = Query(
-        default="ZH_HANS", description="语言: ZH_HANS/EN/RU"
+        default="ZH_HANS", description="Language: ZH_HANS/EN/RU"
     ),
-    sync_all: bool = Query(default=False, description="是否同步所有语言"),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    sync_all: bool = Query(default=False, description="Whether to sync all languages"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OzonCategorySyncResponse:
     """
-    同步Ozon分类属性到本地数据库
+    Sync Ozon category attributes to local database
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -974,7 +968,7 @@ async def sync_ozon_category_attributes(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -988,7 +982,7 @@ async def sync_ozon_category_attributes(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -998,7 +992,8 @@ async def sync_ozon_category_attributes(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -1007,7 +1002,8 @@ async def sync_ozon_category_attributes(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -1105,32 +1101,32 @@ async def sync_ozon_category_attributes(
             return OzonCategorySyncResponse(
                 success=True,
                 attributes_count=total_attributes,
-                message=f"同步完成: 共{total_attributes}个属性 ({', '.join(languages_to_sync)})",
+                message=f"Sync completed: {total_attributes} attributes ({', '.join(languages_to_sync)})",
                 languages=languages_to_sync,
             )
 
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"同步分类属性失败: {e.message}",
+            detail=f"Failed to sync category attributes: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"未知错误: {str(e)}",
+            detail=f"Unknown error: {str(e)}",
         )
 
 
 @router.get("/category-attributes", response_model=List[OzonCategoryAttributeResponse])
 async def get_ozon_category_attributes(
-    description_category_id: int = Query(..., description="分类ID"),
-    type_id: int = Query(..., description="类型ID"),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    description_category_id: int = Query(..., description="Category ID"),
+    type_id: int = Query(..., description="Type ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[OzonCategoryAttributeResponse]:
     """
-    获取本地存储的Ozon分类属性
+    Get locally stored Ozon category attributes
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1140,7 +1136,7 @@ async def get_ozon_category_attributes(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonCategoryAttribute).where(
@@ -1178,15 +1174,15 @@ async def get_ozon_category_attributes(
     "/category-attribute/values", response_model=List[OzonAttributeValueResponse]
 )
 async def get_ozon_attribute_values(
-    description_category_id: int = Query(..., description="分类ID"),
-    type_id: int = Query(..., description="类型ID"),
-    attribute_id: int = Query(..., description="属性ID"),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    description_category_id: int = Query(..., description="Category ID"),
+    type_id: int = Query(..., description="Type ID"),
+    attribute_id: int = Query(..., description="Attribute ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[OzonAttributeValueResponse]:
     """
-    获取本地存储的Ozon属性值
+    Get locally stored Ozon attribute values
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1196,7 +1192,7 @@ async def get_ozon_attribute_values(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonAttributeValue).where(
@@ -1228,16 +1224,16 @@ async def get_ozon_attribute_values(
 
 @router.get("/category-attribute/values/remote", response_model=List[dict])
 async def get_ozon_attribute_values_remote(
-    description_category_id: int = Query(..., description="分类ID"),
-    type_id: int = Query(..., description="类型ID"),
-    attribute_id: int = Query(..., description="属性ID"),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    description_category_id: int = Query(..., description="Category ID"),
+    type_id: int = Query(..., description="Type ID"),
+    attribute_id: int = Query(..., description="Attribute ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[dict]:
     """
-    直接从Ozon API获取属性值（不保存到本地数据库）
-    用于商品编辑时获取属性选项
+    Get attribute values directly from Ozon API (not saved to local database)
+    Used to get attribute options when editing products
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1247,7 +1243,7 @@ async def get_ozon_attribute_values_remote(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -1269,12 +1265,12 @@ async def get_ozon_attribute_values_remote(
         shop = result.scalars().first()
 
     if not shop:
-        raise HTTPException(status_code=404, detail="未找到Ozon店铺")
+        raise HTTPException(status_code=404, detail="Ozon shop not found")
 
     client_id = shop.api_credentials.get("client_id")
     api_key = shop.api_credentials.get("api_key")
     if not client_id or not api_key:
-        raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+        raise HTTPException(status_code=400, detail="Shop missing Ozon API credentials")
 
     try:
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -1288,27 +1284,27 @@ async def get_ozon_attribute_values_remote(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取属性值失败: {e.message}",
+            detail=f"Failed to get attribute values: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取属性值错误: {str(e)}",
+            detail=f"Error getting attribute values: {str(e)}",
         )
 
 
 @router.post("/description-category/tree", response_model=List[dict])
 async def get_description_category_tree(
     language: Optional[str] = Query(
-        default="ZH_HANS", description="语言: ZH_HANS/EN/RU"
+        default="ZH_HANS", description="Language: ZH_HANS/EN/RU"
     ),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[dict]:
     """
-    从Ozon API获取分类树（描述性分类）
-    返回所有层级的分类和类型
+    Get category tree from Ozon API (descriptive categories)
+    Returns all levels of categories and types
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1318,7 +1314,7 @@ async def get_description_category_tree(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -1340,12 +1336,12 @@ async def get_description_category_tree(
         shop = result.scalars().first()
 
     if not shop:
-        raise HTTPException(status_code=404, detail="未找到Ozon店铺")
+        raise HTTPException(status_code=404, detail="Ozon shop not found")
 
     client_id = shop.api_credentials.get("client_id")
     api_key = shop.api_credentials.get("api_key")
     if not client_id or not api_key:
-        raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+        raise HTTPException(status_code=400, detail="Shop missing Ozon API credentials")
 
     try:
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -1355,29 +1351,29 @@ async def get_description_category_tree(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取分类树失败: {e.message}",
+            detail=f"Failed to get category tree: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取分类树错误: {str(e)}",
+            detail=f"Error getting category tree: {str(e)}",
         )
 
 
 @router.post("/description-category/attribute", response_model=List[dict])
 async def get_description_category_attribute(
-    description_category_id: int = Query(..., description="分类ID"),
-    type_id: int = Query(..., description="类型ID"),
+    description_category_id: int = Query(..., description="Category ID"),
+    type_id: int = Query(..., description="Type ID"),
     language: Optional[str] = Query(
-        default="ZH_HANS", description="语言: ZH_HANS/EN/RU"
+        default="ZH_HANS", description="Language: ZH_HANS/EN/RU"
     ),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[dict]:
     """
-    从Ozon API获取分类属性
-    返回分类的所有属性，包含多选字段的dictionary_id
+    Get category attributes from Ozon API
+    Returns all attributes of the category, including dictionary_id for multi-select fields
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1387,7 +1383,7 @@ async def get_description_category_attribute(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -1409,12 +1405,12 @@ async def get_description_category_attribute(
         shop = result.scalars().first()
 
     if not shop:
-        raise HTTPException(status_code=404, detail="未找到Ozon店铺")
+        raise HTTPException(status_code=404, detail="Ozon shop not found")
 
     client_id = shop.api_credentials.get("client_id")
     api_key = shop.api_credentials.get("api_key")
     if not client_id or not api_key:
-        raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+        raise HTTPException(status_code=400, detail="Shop missing Ozon API credentials")
 
     try:
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -1428,32 +1424,32 @@ async def get_description_category_attribute(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取分类属性失败: {e.message}",
+            detail=f"Failed to get category attributes: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取分类属性错误: {str(e)}",
+            detail=f"Error getting category attributes: {str(e)}",
         )
 
 
 @router.post("/description-category/attribute/values", response_model=List[dict])
 async def get_description_category_attribute_values(
-    description_category_id: int = Query(..., description="分类ID"),
-    type_id: int = Query(..., description="类型ID"),
-    attribute_id: int = Query(..., description="属性ID"),
+    description_category_id: int = Query(..., description="Category ID"),
+    type_id: int = Query(..., description="Type ID"),
+    attribute_id: int = Query(..., description="Attribute ID"),
     language: Optional[str] = Query(
-        default="ZH_HANS", description="语言: ZH_HANS/EN/RU"
+        default="ZH_HANS", description="Language: ZH_HANS/EN/RU"
     ),
-    last_value_id: Optional[int] = Query(default=0, description="分页ID"),
-    limit: Optional[int] = Query(default=2000, description="返回数量限制"),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    last_value_id: Optional[int] = Query(default=0, description="Pagination ID"),
+    limit: Optional[int] = Query(default=2000, description="Limit of returned items"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[dict]:
     """
-    从Ozon API获取属性选项值
-    返回属性的所有可选值，用于下拉选择
+    Get attribute option values from Ozon API
+    Returns all optional values for an attribute, used for dropdown selection
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1463,7 +1459,7 @@ async def get_description_category_attribute_values(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -1485,12 +1481,12 @@ async def get_description_category_attribute_values(
         shop = result.scalars().first()
 
     if not shop:
-        raise HTTPException(status_code=404, detail="未找到Ozon店铺")
+        raise HTTPException(status_code=404, detail="Ozon shop not found")
 
     client_id = shop.api_credentials.get("client_id")
     api_key = shop.api_credentials.get("api_key")
     if not client_id or not api_key:
-        raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+        raise HTTPException(status_code=400, detail="Shop missing Ozon API credentials")
 
     try:
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -1505,29 +1501,29 @@ async def get_description_category_attribute_values(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取属性值失败: {e.message}",
+            detail=f"Failed to get attribute values: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取属性值错误: {str(e)}",
+            detail=f"Error getting attribute values: {str(e)}",
         )
 
 
 @router.post("/description-category/attribute/values/search", response_model=List[dict])
 async def search_description_category_attribute_values(
-    description_category_id: int = Query(..., description="分类ID"),
-    type_id: int = Query(..., description="类型ID"),
-    attribute_id: int = Query(..., description="属性ID"),
-    value: str = Query(..., description="搜索关键词（至少2个字符）"),
-    limit: Optional[int] = Query(default=100, description="返回数量限制"),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    description_category_id: int = Query(..., description="Category ID"),
+    type_id: int = Query(..., description="Type ID"),
+    attribute_id: int = Query(..., description="Attribute ID"),
+    value: str = Query(..., description="Search keyword (at least 2 characters)"),
+    limit: Optional[int] = Query(default=100, description="Limit of returned items"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[dict]:
     """
-    搜索属性选项值
-    根据关键词搜索属性的可选值
+    Search attribute option values
+    Search optional values for an attribute by keyword
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1537,7 +1533,7 @@ async def search_description_category_attribute_values(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -1559,17 +1555,16 @@ async def search_description_category_attribute_values(
         shop = result.scalars().first()
 
     if not shop:
-        raise HTTPException(status_code=404, detail="未找到Ozon店铺")
+        raise HTTPException(status_code=404, detail="Ozon shop not found")
 
     client_id = shop.api_credentials.get("client_id")
     api_key = shop.api_credentials.get("api_key")
     if not client_id or not api_key:
-        raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+        raise HTTPException(status_code=400, detail="Shop missing Ozon API credentials")
 
     try:
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
         async with adapter:
-            # 直接调用API进行搜索
             from ozonapi.seller.schemas import (
                 DescriptionCategoryAttributeValuesSearchRequest,
             )
@@ -1596,21 +1591,21 @@ async def search_description_category_attribute_values(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"搜索属性值失败: {e.message}",
+            detail=f"Failed to search attribute values: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"搜索属性值错误: {str(e)}",
+            detail=f"Error searching attribute values: {str(e)}",
         )
 
 
 @router.get("/health")
 async def ozon_health_check() -> Dict[str, Any]:
     """
-    Ozon集成健康检查
+    Ozon integration health check
 
-    检查Ozon集成模块的基本健康状况。
+    Check basic health status of Ozon integration module.
     """
     try:
         from app.integrations.ozon import __version__ as ozon_version
@@ -1624,35 +1619,35 @@ async def ozon_health_check() -> Dict[str, Any]:
     except ImportError as e:
         return {
             "status": "unhealthy",
-            "error": f"模块导入失败: {str(e)}",
+            "error": f"Module import failed: {str(e)}",
             "timestamp": "2026-02-18T00:00:00Z",
         }
     except Exception as e:
         return {
             "status": "unhealthy",
-            "error": f"健康检查失败: {str(e)}",
+            "error": f"Health check failed: {str(e)}",
             "timestamp": "2026-02-18T00:00:00Z",
         }
 
 
 @router.get("/db/products", response_model=PaginatedOzonResponse)
 async def get_ozon_products_from_db(
-    page: int = Query(default=1, ge=1, description="页码"),
-    limit: int = Query(default=50, ge=1, le=100, description="每页数量"),
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
-    status_filter: Optional[str] = Query(default=None, description="状态筛选"),
-    visibility: Optional[str] = Query(default=None, description="可见性筛选"),
-    sku: Optional[str] = Query(default=None, description="SKU筛选"),
-    offer_id: Optional[str] = Query(default=None, description="Offer ID筛选"),
-    category_id: Optional[int] = Query(default=None, description="分类ID筛选"),
-    q: Optional[str] = Query(default=None, description="搜索关键词"),
+    page: int = Query(default=1, ge=1, description="Page number"),
+    limit: int = Query(default=50, ge=1, le=100, description="Items per page"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
+    status_filter: Optional[str] = Query(default=None, description="Status filter"),
+    visibility: Optional[str] = Query(default=None, description="Visibility filter"),
+    sku: Optional[str] = Query(default=None, description="SKU filter"),
+    offer_id: Optional[str] = Query(default=None, description="Offer ID filter"),
+    category_id: Optional[int] = Query(default=None, description="Category ID filter"),
+    q: Optional[str] = Query(default=None, description="Search keyword"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedOzonResponse:
     """
-    从数据库获取Ozon商品列表
+    Get Ozon product list from database
 
-    获取已同步到本地数据库的Ozon商品。
+    Get Ozon products that have been synced to local database.
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1662,7 +1657,7 @@ async def get_ozon_products_from_db(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     query = select(OzonProduct).where(OzonProduct.team_id == member.team_id)
 
@@ -1723,7 +1718,6 @@ async def get_ozon_products_from_db(
                 vat=p.vat,
                 commission_percent=p.commission_percent,
                 volume_weight=p.volume_weight,
-                # Parse JSON strings back to lists
                 barcodes=json.loads(p.barcodes)
                 if isinstance(p.barcodes, str)
                 else (p.barcodes or []),
@@ -1731,7 +1725,6 @@ async def get_ozon_products_from_db(
                 if isinstance(p.images, str)
                 else (p.images or []),
                 primary_image=p.primary_image,
-                # Parse JSON strings back to dicts
                 attributes=json.loads(p.attributes)
                 if isinstance(p.attributes, str)
                 else (p.attributes or {}),
@@ -1764,7 +1757,7 @@ async def get_ozon_product_detail(
     db: AsyncSession = Depends(get_db),
 ) -> OzonProductDbResponse:
     """
-    获取Ozon商品详情
+    Get Ozon product detail
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1774,7 +1767,7 @@ async def get_ozon_product_detail(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonProduct).where(
@@ -1784,7 +1777,7 @@ async def get_ozon_product_detail(
     product = result.scalar_one_or_none()
 
     if not product:
-        raise HTTPException(status_code=404, detail="商品不存在")
+        raise HTTPException(status_code=404, detail="Product does not exist")
 
     return OzonProductDbResponse(
         id=product.id,
@@ -1814,7 +1807,6 @@ async def get_ozon_product_detail(
         vat=product.vat,
         commission_percent=product.commission_percent,
         volume_weight=product.volume_weight,
-        # Parse JSON strings back to lists
         barcodes=json.loads(product.barcodes)
         if isinstance(product.barcodes, str)
         else (product.barcodes or []),
@@ -1822,7 +1814,6 @@ async def get_ozon_product_detail(
         if isinstance(product.images, str)
         else (product.images or []),
         primary_image=product.primary_image,
-        # Parse JSON strings back to dicts
         attributes=json.loads(product.attributes)
         if isinstance(product.attributes, str)
         else (product.attributes or {}),
@@ -1847,9 +1838,9 @@ async def update_ozon_product(
     db: AsyncSession = Depends(get_db),
 ) -> OzonProductDbResponse:
     """
-    更新Ozon商品信息
+    Update Ozon product information
 
-    更新本地数据库中的Ozon商品信息，用于前端编辑。
+    Update Ozon product information in local database for frontend editing.
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1859,7 +1850,7 @@ async def update_ozon_product(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonProduct).where(
@@ -1869,9 +1860,8 @@ async def update_ozon_product(
     product = result.scalar_one_or_none()
 
     if not product:
-        raise HTTPException(status_code=404, detail="商品不存在")
+        raise HTTPException(status_code=404, detail="Product does not exist")
 
-    # 更新字段
     update_dict = update_data.model_dump(exclude_unset=True)
     for key, value in update_dict.items():
         if hasattr(product, key):
@@ -1909,7 +1899,6 @@ async def update_ozon_product(
         vat=product.vat,
         commission_percent=product.commission_percent,
         volume_weight=product.volume_weight,
-        # Parse JSON strings back to lists
         barcodes=json.loads(product.barcodes)
         if isinstance(product.barcodes, str)
         else (product.barcodes or []),
@@ -1917,7 +1906,6 @@ async def update_ozon_product(
         if isinstance(product.images, str)
         else (product.images or []),
         primary_image=product.primary_image,
-        # Parse JSON strings back to dicts
         attributes=json.loads(product.attributes)
         if isinstance(product.attributes, str)
         else (product.attributes or {}),
@@ -1941,7 +1929,7 @@ async def push_ozon_product(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
-    将本地Ozon商品更改推送到Ozon平台
+    Push local Ozon product changes to Ozon platform
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -1951,7 +1939,7 @@ async def push_ozon_product(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonProduct).where(
@@ -1961,9 +1949,8 @@ async def push_ozon_product(
     product = result.scalar_one_or_none()
 
     if not product:
-        raise HTTPException(status_code=404, detail="商品不存在")
+        raise HTTPException(status_code=404, detail="Product does not exist")
 
-    # 获取店铺凭证
     result = await db.execute(
         select(Shop).where(
             and_(Shop.id == product.shop_id, Shop.team_id == member.team_id)
@@ -1971,33 +1958,32 @@ async def push_ozon_product(
     )
     shop = result.scalar_one_or_none()
     if not shop:
-        raise HTTPException(status_code=404, detail="关联店铺不存在")
+        raise HTTPException(status_code=404, detail="Related shop does not exist")
 
     client_id = shop.api_credentials.get("client_id")
     api_key = shop.api_credentials.get("api_key")
     if not client_id or not api_key:
-        raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+        raise HTTPException(status_code=400, detail="Shop missing Ozon API credentials")
 
     try:
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
         async with adapter:
-            # 转换商品模型
             ozon_product = convert_db_to_integration_product(product)
             result = await adapter.update_product(ozon_product)
             return {
                 "success": True,
                 "task_id": result.get("task_id"),
-                "message": "商品已推送到Ozon",
+                "message": "Product pushed to Ozon",
             }
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"推送失败: {e.message}",
+            detail=f"Push failed: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"推送错误: {str(e)}",
+            detail=f"Push error: {str(e)}",
         )
 
 
@@ -2008,7 +1994,7 @@ async def archive_ozon_product(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
-    在Ozon平台归档商品
+    Archive product on Ozon platform
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2018,7 +2004,7 @@ async def archive_ozon_product(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonProduct).where(
@@ -2028,12 +2014,13 @@ async def archive_ozon_product(
     product = result.scalar_one_or_none()
 
     if not product:
-        raise HTTPException(status_code=404, detail="商品不存在")
+        raise HTTPException(status_code=404, detail="Product does not exist")
 
     if not product.ozon_product_id:
-        raise HTTPException(status_code=400, detail="商品未关联Ozon商品ID")
+        raise HTTPException(
+            status_code=400, detail="Product not linked to Ozon product ID"
+        )
 
-    # 获取店铺凭证
     result = await db.execute(
         select(Shop).where(
             and_(Shop.id == product.shop_id, Shop.team_id == member.team_id)
@@ -2041,31 +2028,30 @@ async def archive_ozon_product(
     )
     shop = result.scalar_one_or_none()
     if not shop:
-        raise HTTPException(status_code=404, detail="关联店铺不存在")
+        raise HTTPException(status_code=404, detail="Related shop does not exist")
 
     client_id = shop.api_credentials.get("client_id")
     api_key = shop.api_credentials.get("api_key")
     if not client_id or not api_key:
-        raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+        raise HTTPException(status_code=400, detail="Shop missing Ozon API credentials")
 
     try:
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
         async with adapter:
             result = await adapter.archive_product(product.ozon_product_id)
-            # 更新本地商品状态
             product.is_archived = True
             product.updated_at = datetime.utcnow()
             await db.commit()
-            return {"success": True, "message": "商品已归档"}
+            return {"success": True, "message": "Product archived"}
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"归档失败: {e.message}",
+            detail=f"Archive failed: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"归档错误: {str(e)}",
+            detail=f"Archive error: {str(e)}",
         )
 
 
@@ -2076,7 +2062,7 @@ async def unarchive_ozon_product(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
-    在Ozon平台取消归档商品
+    Unarchive product on Ozon platform
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2086,7 +2072,7 @@ async def unarchive_ozon_product(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     result = await db.execute(
         select(OzonProduct).where(
@@ -2096,12 +2082,13 @@ async def unarchive_ozon_product(
     product = result.scalar_one_or_none()
 
     if not product:
-        raise HTTPException(status_code=404, detail="商品不存在")
+        raise HTTPException(status_code=404, detail="Product does not exist")
 
     if not product.ozon_product_id:
-        raise HTTPException(status_code=400, detail="商品未关联Ozon商品ID")
+        raise HTTPException(
+            status_code=400, detail="Product not linked to Ozon product ID"
+        )
 
-    # 获取店铺凭证
     result = await db.execute(
         select(Shop).where(
             and_(Shop.id == product.shop_id, Shop.team_id == member.team_id)
@@ -2109,39 +2096,38 @@ async def unarchive_ozon_product(
     )
     shop = result.scalar_one_or_none()
     if not shop:
-        raise HTTPException(status_code=404, detail="关联店铺不存在")
+        raise HTTPException(status_code=404, detail="Related shop does not exist")
 
     client_id = shop.api_credentials.get("client_id")
     api_key = shop.api_credentials.get("api_key")
     if not client_id or not api_key:
-        raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+        raise HTTPException(status_code=400, detail="Shop missing Ozon API credentials")
 
     try:
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
         async with adapter:
             result = await adapter.unarchive_product(product.ozon_product_id)
-            # 更新本地商品状态
             product.is_archived = False
             product.updated_at = datetime.utcnow()
             await db.commit()
-            return {"success": True, "message": "商品已取消归档"}
+            return {"success": True, "message": "Product unarchived"}
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"取消归档失败: {e.message}",
+            detail=f"Unarchive failed: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"取消归档错误: {str(e)}",
+            detail=f"Unarchive error: {str(e)}",
         )
 
 
 class OzonProductImageRequest(BaseModel):
-    """Ozon商品图片请求"""
+    """Ozon product image request"""
 
-    offer_id: str = Field(..., description="商品货号")
-    images: List[str] = Field(..., description="图片URL列表")
+    offer_id: str = Field(..., description="Product offer ID")
+    images: List[str] = Field(..., description="Image URL list")
 
 
 @router.post("/products/images", response_model=Dict[str, Any])
@@ -2151,9 +2137,9 @@ async def import_product_images(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
-    导入商品图片到Ozon
+    Import product images to Ozon
 
-    将图片URL关联到Ozon商品。
+    Associate image URLs with Ozon product.
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2163,9 +2149,8 @@ async def import_product_images(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
-    # 获取用户的Ozon店铺
     result = await db.execute(
         select(Shop).where(
             and_(Shop.team_id == member.team_id, Shop.platform == "ozon")
@@ -2174,7 +2159,9 @@ async def import_product_images(
     shop = result.scalars().first()
 
     if not shop:
-        raise HTTPException(status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺")
+        raise HTTPException(
+            status_code=404, detail="Ozon shop not found, please add Ozon shop first"
+        )
 
     try:
         client_id = shop.api_credentials.get("client_id")
@@ -2182,13 +2169,13 @@ async def import_product_images(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
 
         async with adapter:
-            # 构建图片导入项
             items = [{"offer_id": request.offer_id, "images": request.images}]
 
             result = await adapter.import_product_images(items)
@@ -2202,25 +2189,25 @@ async def import_product_images(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"导入图片失败: {str(e)}",
+            detail=f"Failed to import images: {str(e)}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"导入图片错误: {str(e)}",
+            detail=f"Error importing images: {str(e)}",
         )
 
 
 @router.post("/sync/products", response_model=OzonSyncResponse)
 async def sync_ozon_products(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OzonSyncResponse:
     """
-    同步Ozon商品到数据库
+    Sync Ozon products to database
 
-    从Ozon API获取商品信息并存储到本地数据库。
+    Get product information from Ozon API and store to local database.
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2230,7 +2217,7 @@ async def sync_ozon_products(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -2244,7 +2231,7 @@ async def sync_ozon_products(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -2254,7 +2241,8 @@ async def sync_ozon_products(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -2263,7 +2251,8 @@ async def sync_ozon_products(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -2278,23 +2267,23 @@ async def sync_ozon_products(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"同步失败: {e.message}",
+            detail=f"Sync failed: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"同步错误: {str(e)}",
+            detail=f"Sync error: {str(e)}",
         )
 
 
 @router.get("/db/stats")
 async def get_ozon_products_stats(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
-    获取Ozon商品统计信息
+    Get Ozon product statistics
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2304,7 +2293,7 @@ async def get_ozon_products_stats(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     query = select(OzonProduct).where(OzonProduct.team_id == member.team_id)
 
@@ -2329,7 +2318,7 @@ async def get_ozon_products_stats(
 
 
 class OzonOrderResponse(BaseModel):
-    """Ozon订单响应"""
+    """Ozon order response"""
 
     order_id: str
     order_number: str
@@ -2348,7 +2337,7 @@ class OzonOrderResponse(BaseModel):
 
 
 class OzonOrderSyncResponse(BaseModel):
-    """Ozon订单同步响应"""
+    """Ozon order sync response"""
 
     success: bool
     synced: int = 0
@@ -2359,15 +2348,17 @@ class OzonOrderSyncResponse(BaseModel):
 
 @router.post("/sync/orders", response_model=OzonOrderSyncResponse)
 async def sync_ozon_orders(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
-    days_back: int = Query(default=7, ge=1, le=30, description="同步天数（默认7天）"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
+    days_back: int = Query(
+        default=7, ge=1, le=30, description="Days to sync (default 7)"
+    ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OzonOrderSyncResponse:
     """
-    同步Ozon订单到数据库
+    Sync Ozon orders to database
 
-    从Ozon API获取订单信息并存储到本地数据库。
+    Get order information from Ozon API and store to local database.
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2377,7 +2368,7 @@ async def sync_ozon_orders(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -2391,7 +2382,7 @@ async def sync_ozon_orders(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -2401,7 +2392,8 @@ async def sync_ozon_orders(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -2410,13 +2402,13 @@ async def sync_ozon_orders(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
 
         async with adapter:
-            # 同步订单到数据库
             sync_result = await adapter.sync_orders_to_database(
                 db=db, team_id=member.team_id, shop_id=shop.id, days_back=days_back
             )
@@ -2432,26 +2424,26 @@ async def sync_ozon_orders(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"同步失败: {e.message}",
+            detail=f"Sync failed: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"同步错误: {str(e)}",
+            detail=f"Sync error: {str(e)}",
         )
 
 
 @router.get("/orders/fbo/{posting_number}", response_model=Dict[str, Any])
 async def get_fbo_order_detail(
     posting_number: str,
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
-    获取FBO订单详情
+    Get FBO order detail
 
-    FBO (Fulfillment by Ozon) 订单详情。
+    FBO (Fulfillment by Ozon) order detail.
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2461,9 +2453,8 @@ async def get_fbo_order_detail(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
-    # 获取店铺
     if shop_id:
         result = await db.execute(
             select(Shop).where(
@@ -2476,7 +2467,7 @@ async def get_fbo_order_detail(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -2486,7 +2477,8 @@ async def get_fbo_order_detail(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -2494,7 +2486,9 @@ async def get_fbo_order_detail(
         api_key = shop.api_credentials.get("api_key")
 
         if not client_id or not api_key:
-            raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+            raise HTTPException(
+                status_code=400, detail="Shop missing Ozon API credentials"
+            )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
 
@@ -2505,26 +2499,26 @@ async def get_fbo_order_detail(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取FBO订单详情失败: {str(e)}",
+            detail=f"Failed to get FBO order detail: {str(e)}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取FBO订单详情错误: {str(e)}",
+            detail=f"Error getting FBO order detail: {str(e)}",
         )
 
 
 @router.get("/orders/fbs/{posting_number}", response_model=Dict[str, Any])
 async def get_fbs_order_detail(
     posting_number: str,
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
-    获取FBS订单详情
+    Get FBS order detail
 
-    FBS (Fulfillment by Seller) 订单详情。
+    FBS (Fulfillment by Seller) order detail.
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2534,9 +2528,8 @@ async def get_fbs_order_detail(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
-    # 获取店铺
     if shop_id:
         result = await db.execute(
             select(Shop).where(
@@ -2549,7 +2542,7 @@ async def get_fbs_order_detail(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -2559,7 +2552,8 @@ async def get_fbs_order_detail(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -2567,7 +2561,9 @@ async def get_fbs_order_detail(
         api_key = shop.api_credentials.get("api_key")
 
         if not client_id or not api_key:
-            raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+            raise HTTPException(
+                status_code=400, detail="Shop missing Ozon API credentials"
+            )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
 
@@ -2578,25 +2574,25 @@ async def get_fbs_order_detail(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取FBS订单详情失败: {str(e)}",
+            detail=f"Failed to get FBS order detail: {str(e)}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取FBS订单详情错误: {str(e)}",
+            detail=f"Error getting FBS order detail: {str(e)}",
         )
 
 
 @router.get("/orders/unfulfilled", response_model=List[Dict[str, Any]])
 async def get_unfulfilled_postings(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[Dict[str, Any]]:
     """
-    获取待发货订单列表
+    Get pending shipment order list
 
-    获取所有未完成的订单（待发货）。
+    Get all incomplete orders (awaiting shipment).
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2606,9 +2602,8 @@ async def get_unfulfilled_postings(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
-    # 获取店铺
     if shop_id:
         result = await db.execute(
             select(Shop).where(
@@ -2621,7 +2616,7 @@ async def get_unfulfilled_postings(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -2631,7 +2626,8 @@ async def get_unfulfilled_postings(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -2639,7 +2635,9 @@ async def get_unfulfilled_postings(
         api_key = shop.api_credentials.get("api_key")
 
         if not client_id or not api_key:
-            raise HTTPException(status_code=400, detail="店铺缺少Ozon API凭证")
+            raise HTTPException(
+                status_code=400, detail="Shop missing Ozon API credentials"
+            )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
 
@@ -2650,17 +2648,17 @@ async def get_unfulfilled_postings(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取待发货订单失败: {str(e)}",
+            detail=f"Failed to get pending orders: {str(e)}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取待发货订单错误: {str(e)}",
+            detail=f"Error getting pending orders: {str(e)}",
         )
 
 
 class OzonWarehouseResponse(BaseModel):
-    """Ozon仓库响应"""
+    """Ozon warehouse response"""
 
     warehouse_id: str
     name: str
@@ -2675,7 +2673,7 @@ class OzonWarehouseResponse(BaseModel):
 
 
 class OzonDeliveryMethodResponse(BaseModel):
-    """Ozon配送方式响应"""
+    """Ozon delivery method response"""
 
     delivery_method_id: str
     name: str
@@ -2688,7 +2686,7 @@ class OzonDeliveryMethodResponse(BaseModel):
 
 
 class OzonSellerInfoResponse(BaseModel):
-    """Ozon卖家信息响应"""
+    """Ozon seller info response"""
 
     seller_id: int
     name: str
@@ -2701,12 +2699,12 @@ class OzonSellerInfoResponse(BaseModel):
 
 @router.get("/warehouses", response_model=List[OzonWarehouseResponse])
 async def get_ozon_warehouses(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[OzonWarehouseResponse]:
     """
-    获取Ozon仓库列表
+    Get Ozon warehouse list
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2716,7 +2714,7 @@ async def get_ozon_warehouses(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -2730,7 +2728,7 @@ async def get_ozon_warehouses(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -2740,7 +2738,8 @@ async def get_ozon_warehouses(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -2749,7 +2748,8 @@ async def get_ozon_warehouses(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -2773,23 +2773,23 @@ async def get_ozon_warehouses(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取仓库失败: {e.message}",
+            detail=f"Failed to get warehouses: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取仓库错误: {str(e)}",
+            detail=f"Error getting warehouses: {str(e)}",
         )
 
 
 @router.get("/delivery-methods", response_model=List[OzonDeliveryMethodResponse])
 async def get_ozon_delivery_methods(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[OzonDeliveryMethodResponse]:
     """
-    获取Ozon配送方式列表
+    Get Ozon delivery method list
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2799,7 +2799,7 @@ async def get_ozon_delivery_methods(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -2813,7 +2813,7 @@ async def get_ozon_delivery_methods(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -2823,7 +2823,8 @@ async def get_ozon_delivery_methods(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -2832,7 +2833,8 @@ async def get_ozon_delivery_methods(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -2854,23 +2856,23 @@ async def get_ozon_delivery_methods(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取配送方式失败: {e.message}",
+            detail=f"Failed to get delivery methods: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取配送方式错误: {str(e)}",
+            detail=f"Error getting delivery methods: {str(e)}",
         )
 
 
 @router.get("/seller-info", response_model=OzonSellerInfoResponse)
 async def get_ozon_seller_info(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> OzonSellerInfoResponse:
     """
-    获取Ozon卖家信息
+    Get Ozon seller info
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2880,7 +2882,7 @@ async def get_ozon_seller_info(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -2894,7 +2896,7 @@ async def get_ozon_seller_info(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -2904,7 +2906,8 @@ async def get_ozon_seller_info(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -2913,7 +2916,8 @@ async def get_ozon_seller_info(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -2931,17 +2935,17 @@ async def get_ozon_seller_info(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取卖家信息失败: {e.message}",
+            detail=f"Failed to get seller info: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取卖家信息错误: {str(e)}",
+            detail=f"Error getting seller info: {str(e)}",
         )
 
 
 class OzonPriceUpdateRequest(BaseModel):
-    """Ozon价格更新请求"""
+    """Ozon price update request"""
 
     offer_id: str
     price: float
@@ -2950,7 +2954,7 @@ class OzonPriceUpdateRequest(BaseModel):
 
 
 class OzonStockUpdateRequest(BaseModel):
-    """Ozon库存更新请求"""
+    """Ozon stock update request"""
 
     offer_id: str
     stock: int
@@ -2960,12 +2964,12 @@ class OzonStockUpdateRequest(BaseModel):
 @router.post("/products/prices", response_model=Dict[str, Any])
 async def update_ozon_product_prices(
     items: List[OzonPriceUpdateRequest],
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
-    批量更新Ozon商品价格
+    Batch update Ozon product prices
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -2975,7 +2979,7 @@ async def update_ozon_product_prices(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -2989,7 +2993,7 @@ async def update_ozon_product_prices(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -2999,7 +3003,8 @@ async def update_ozon_product_prices(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -3008,7 +3013,8 @@ async def update_ozon_product_prices(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -3028,30 +3034,30 @@ async def update_ozon_product_prices(
             return {
                 "success": True,
                 "task_id": result.get("task_id"),
-                "message": f"成功提交{len(items)}个商品价格更新",
+                "message": f"Successfully submitted {len(items)} product price updates",
             }
 
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"更新价格失败: {e.message}",
+            detail=f"Failed to update prices: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"更新价格错误: {str(e)}",
+            detail=f"Error updating prices: {str(e)}",
         )
 
 
 @router.post("/products/stocks", response_model=Dict[str, Any])
 async def update_ozon_product_stocks(
     items: List[OzonStockUpdateRequest],
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
-    批量更新Ozon商品库存
+    Batch update Ozon product stocks
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -3061,7 +3067,7 @@ async def update_ozon_product_stocks(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -3075,7 +3081,7 @@ async def update_ozon_product_stocks(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -3085,7 +3091,8 @@ async def update_ozon_product_stocks(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -3094,7 +3101,8 @@ async def update_ozon_product_stocks(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -3112,32 +3120,32 @@ async def update_ozon_product_stocks(
             return {
                 "success": True,
                 "task_id": result.get("task_id"),
-                "message": f"成功提交{len(items)}个商品库存更新",
+                "message": f"Successfully submitted {len(items)} product stock updates",
             }
 
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"更新库存失败: {e.message}",
+            detail=f"Failed to update stocks: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"更新库存错误: {str(e)}",
+            detail=f"Error updating stocks: {str(e)}",
         )
 
 
 @router.get("/products/prices", response_model=List[Dict[str, Any]])
 async def get_ozon_product_prices(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     product_ids: Optional[str] = Query(
-        default=None, description="商品ID列表，逗号分隔"
+        default=None, description="Product ID list, comma separated"
     ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[Dict[str, Any]]:
     """
-    获取Ozon商品价格信息
+    Get Ozon product price information
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -3147,7 +3155,7 @@ async def get_ozon_product_prices(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -3161,7 +3169,7 @@ async def get_ozon_product_prices(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -3171,7 +3179,8 @@ async def get_ozon_product_prices(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -3180,7 +3189,8 @@ async def get_ozon_product_prices(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -3207,26 +3217,26 @@ async def get_ozon_product_prices(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取价格失败: {e.message}",
+            detail=f"Failed to get prices: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取价格错误: {str(e)}",
+            detail=f"Error getting prices: {str(e)}",
         )
 
 
 @router.get("/products/stocks", response_model=List[Dict[str, Any]])
 async def get_ozon_product_stocks(
-    shop_id: Optional[str] = Query(default=None, description="店铺ID"),
+    shop_id: Optional[str] = Query(default=None, description="Shop ID"),
     product_ids: Optional[str] = Query(
-        default=None, description="商品ID列表，逗号分隔"
+        default=None, description="Product ID list, comma separated"
     ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> List[Dict[str, Any]]:
     """
-    获取Ozon商品库存信息
+    Get Ozon product stock information
     """
     result = await db.execute(
         select(TeamMember).where(
@@ -3236,7 +3246,7 @@ async def get_ozon_product_stocks(
     member = result.scalar_one_or_none()
 
     if not member:
-        raise HTTPException(status_code=403, detail="用户未在任何团队中")
+        raise HTTPException(status_code=403, detail="User not in any team")
 
     if shop_id:
         result = await db.execute(
@@ -3250,7 +3260,7 @@ async def get_ozon_product_stocks(
         )
         shop = result.scalar_one_or_none()
         if not shop:
-            raise HTTPException(status_code=404, detail="Ozon店铺不存在")
+            raise HTTPException(status_code=404, detail="Ozon shop does not exist")
     else:
         result = await db.execute(
             select(Shop).where(
@@ -3260,7 +3270,8 @@ async def get_ozon_product_stocks(
         shop = result.scalars().first()
         if not shop:
             raise HTTPException(
-                status_code=404, detail="未找到Ozon店铺，请先添加Ozon店铺"
+                status_code=404,
+                detail="Ozon shop not found, please add Ozon shop first",
             )
 
     try:
@@ -3269,7 +3280,8 @@ async def get_ozon_product_stocks(
 
         if not client_id or not api_key:
             raise HTTPException(
-                status_code=400, detail="店铺缺少Ozon API凭证，请检查店铺配置"
+                status_code=400,
+                detail="Shop missing Ozon API credentials, please check shop configuration",
             )
 
         adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
@@ -3296,10 +3308,10 @@ async def get_ozon_product_stocks(
     except OzonIntegrationError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取库存失败: {e.message}",
+            detail=f"Failed to get stocks: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"获取库存错误: {str(e)}",
+            detail=f"Error getting stocks: {str(e)}",
         )

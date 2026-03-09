@@ -47,7 +47,8 @@ class SyncResponse(BaseModel):
 
 
 class ShopValidationResponse(BaseModel):
-    """店铺验证响应"""
+    """Shop validation response"""
+
     success: bool
     message: str
     platform_shop_id: Optional[str] = None
@@ -124,17 +125,17 @@ async def create_shop(
     if member.role not in ["super_admin", "admin", "operator"]:
         raise HTTPException(status_code=403, detail="No permission to create shop")
 
-    # 设置平台店铺ID和名称
+    # Set platform shop ID and name
     platform_shop_id = None
     platform_shop_name = shop_data.name
-    
+
     if shop_data.platform == "ozon" and shop_data.api_credentials:
-        # 对于Ozon平台，使用client_id作为平台店铺ID
+        # For Ozon platform, use client_id as platform shop ID
         platform_shop_id = shop_data.api_credentials.get("client_id")
-        # 如果没有店铺名称，可以使用client_id或保持为None
+        # If no shop name, can use client_id or leave as None
         if platform_shop_id and not platform_shop_name:
             platform_shop_name = f"Ozon Shop {platform_shop_id}"
-    
+
     shop = Shop(
         id=str(uuid.uuid4()),
         team_id=member.team_id,
@@ -336,7 +337,7 @@ async def validate_shop(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ShopValidationResponse:
-    """验证店铺连接和权限"""
+    """Validate shop connection and permissions"""
     result = await db.execute(
         select(TeamMember).where(
             TeamMember.user_id == current_user.id, TeamMember.status == "active"
@@ -355,14 +356,14 @@ async def validate_shop(
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
 
-    # 根据平台进行验证
+    # Validate based on platform
     if shop.platform == "ozon":
         from app.integrations.ozon.adapter import OzonIntegrationAdapter
         from app.integrations.ozon.exceptions import OzonIntegrationError
-        
+
         client_id = shop.api_credentials.get("client_id")
         api_key = shop.api_credentials.get("api_key")
-        
+
         if not client_id or not api_key:
             return ShopValidationResponse(
                 success=False,
@@ -371,11 +372,11 @@ async def validate_shop(
                 platform_shop_name=shop.platform_shop_name,
                 connection_tested=False,
             )
-        
+
         try:
             adapter = OzonIntegrationAdapter(client_id=client_id, api_key=api_key)
             async with adapter:
-                # 测试连接
+                # Test connection
                 connected = await adapter.connect()
                 if not connected:
                     return ShopValidationResponse(
@@ -385,24 +386,27 @@ async def validate_shop(
                         platform_shop_name=shop.platform_shop_name,
                         connection_tested=True,
                     )
-                
-                # 尝试获取一个订单以验证订单读取权限
+
+                # Try to get an order to verify order read permission
                 orders_found = 0
                 order_read_permission = False
                 try:
-                    # 尝试获取最近1天的FBO订单（最多1个）
+                    # Try to get FBO orders from last 1 day (max 1)
                     from datetime import datetime, timedelta
+
                     end_date = datetime.utcnow()
                     start_date = end_date - timedelta(days=1)
-                    fbo_orders = await adapter.get_fbo_orders(start_date, end_date, limit=1)
+                    fbo_orders = await adapter.get_fbo_orders(
+                        start_date, end_date, limit=1
+                    )
                     if isinstance(fbo_orders, list):
                         orders_found = len(fbo_orders)
                         order_read_permission = True
                 except Exception as order_error:
-                    # 获取订单失败，可能是权限不足或没有订单
+                    # Failed to get orders, may be due to insufficient permissions or no orders
                     order_read_permission = False
-                
-                # 更新店铺的平台ID和名称（如果缺失）
+
+                # Update shop platform ID and name (if missing)
                 updated = False
                 if not shop.platform_shop_id and client_id:
                     shop.platform_shop_id = str(client_id)
@@ -410,10 +414,10 @@ async def validate_shop(
                 if not shop.platform_shop_name:
                     shop.platform_shop_name = shop.name
                     updated = True
-                
+
                 if updated:
                     await db.commit()
-                
+
                 return ShopValidationResponse(
                     success=True,
                     message="Shop validated successfully",
@@ -423,7 +427,7 @@ async def validate_shop(
                     order_read_permission=order_read_permission,
                     orders_found=orders_found,
                 )
-                
+
         except OzonIntegrationError as e:
             return ShopValidationResponse(
                 success=False,
@@ -441,7 +445,7 @@ async def validate_shop(
                 connection_tested=False,
             )
     else:
-        # 其他平台暂不支持验证
+        # Other platforms not supported for validation yet
         return ShopValidationResponse(
             success=False,
             message=f"Platform {shop.platform} validation not implemented yet",

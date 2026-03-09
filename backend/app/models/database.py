@@ -245,25 +245,35 @@ class Product(Base):
     dimensions: Mapped[dict] = mapped_column(JSON, nullable=True)
     attributes: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String(20), default="active")
-    
-    # 选品状态
+
+    # Selection status
     selection_status: Mapped[str] = mapped_column(
-        String(20), default="draft",
-        comment="选品状态: draft-未选品, selected-已选品"
+        String(20),
+        default="draft",
+        comment="Selection status: draft-not selected, selected-selected",
     )
-    
-    # 上架状态
+
+    # Listing status
     listing_status: Mapped[str] = mapped_column(
-        String(20), default="not_listed",
-        comment="上架状态: not_listed-未上架, pending-待上架, listing-上架中, listed-已上架"
+        String(20),
+        default="not_listed",
+        comment="Listing status: not_listed-not listed, pending-pending, listing-in progress, listed-listed",
     )
-    
-    # 1688选品链接
-    source_url: Mapped[str] = mapped_column(Text, nullable=True, comment="1688选品链接")
-    source_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=True, comment="采购价")
-    source_stock: Mapped[int] = mapped_column(Integer, nullable=True, comment="源库存")
-    source_supplier: Mapped[str] = mapped_column(String(100), nullable=True, comment="供应商")
-    
+
+    # 1688 selection link
+    source_url: Mapped[str] = mapped_column(
+        Text, nullable=True, comment="1688 selection link"
+    )
+    source_price: Mapped[float] = mapped_column(
+        Numeric(10, 2), nullable=True, comment="Purchase price"
+    )
+    source_stock: Mapped[int] = mapped_column(
+        Integer, nullable=True, comment="Source stock"
+    )
+    source_supplier: Mapped[str] = mapped_column(
+        String(100), nullable=True, comment="Supplier"
+    )
+
     tags: Mapped[list] = mapped_column(JSON, default=list)
     extra_data: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(
@@ -804,7 +814,8 @@ class OzonProduct(Base):
 
 
 class OzonCategoryTree(Base):
-    """Ozon商品分类树"""
+    """Ozon product category tree"""
+
     __tablename__ = "ozon_category_tree"
 
     id: Mapped[str] = mapped_column(
@@ -816,7 +827,9 @@ class OzonCategoryTree(Base):
     shop_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("shops.id", ondelete="CASCADE"), nullable=True
     )
-    description_category_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    description_category_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, index=True
+    )
     category_name: Mapped[str] = mapped_column(String(255), nullable=True)
     category_name_en: Mapped[str] = mapped_column(String(255), nullable=True)
     category_name_ru: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -844,7 +857,8 @@ class OzonCategoryTree(Base):
 
 
 class OzonCategoryAttribute(Base):
-    """Ozon分类属性"""
+    """Ozon category attributes"""
+
     __tablename__ = "ozon_category_attributes"
 
     id: Mapped[str] = mapped_column(
@@ -856,7 +870,9 @@ class OzonCategoryAttribute(Base):
     shop_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("shops.id", ondelete="CASCADE"), nullable=True
     )
-    description_category_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    description_category_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, index=True
+    )
     type_id: Mapped[int] = mapped_column(Integer, nullable=False)
     attribute_id: Mapped[int] = mapped_column(Integer, nullable=False)
     attribute_name: Mapped[str] = mapped_column(String(255), nullable=True)
@@ -891,7 +907,8 @@ class OzonCategoryAttribute(Base):
 
 
 class OzonAttributeValue(Base):
-    """Ozon属性值"""
+    """Ozon attribute values"""
+
     __tablename__ = "ozon_attribute_values"
 
     id: Mapped[str] = mapped_column(
@@ -903,7 +920,9 @@ class OzonAttributeValue(Base):
     shop_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("shops.id", ondelete="CASCADE"), nullable=True
     )
-    description_category_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    description_category_id: Mapped[int] = mapped_column(
+        Integer, nullable=False, index=True
+    )
     type_id: Mapped[int] = mapped_column(Integer, nullable=False)
     attribute_id: Mapped[int] = mapped_column(Integer, nullable=False)
     value_id: Mapped[int] = mapped_column(Integer, nullable=False)

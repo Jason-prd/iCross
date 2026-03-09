@@ -26,6 +26,10 @@ api_router.include_router(orders.router, prefix="/orders", tags=["orders"])
 api_router.include_router(inventory.router, prefix="/inventory", tags=["inventory"])
 api_router.include_router(customers.router, prefix="/customers", tags=["customers"])
 api_router.include_router(ozon.router, prefix="/ozon", tags=["ozon"])
-api_router.include_router(dashboard.router, prefix="/dashboard", tags=["运营仪表盘"])
-api_router.include_router(selection.router, prefix="/selection", tags=["选品管理"])
-api_router.include_router(dropship.router, prefix="/dropship", tags=["代发订单"])
+api_router.include_router(
+    dashboard.router, prefix="/dashboard", tags=["Operations Dashboard"]
+)
+api_router.include_router(
+    selection.router, prefix="/selection", tags=["Selection Management"]
+)
+api_router.include_router(dropship.router, prefix="/dropship", tags=["Dropship Orders"])
