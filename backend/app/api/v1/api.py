@@ -13,6 +13,10 @@ from app.api.v1.endpoints import (
     selection,
     dropship,
     dashboard,
+    ozon_products,
+    ozon_categories,
+    ozon_orders,
+    ozon_pricing,
 )
 
 api_router = APIRouter()
@@ -26,6 +30,12 @@ api_router.include_router(orders.router, prefix="/orders", tags=["orders"])
 api_router.include_router(inventory.router, prefix="/inventory", tags=["inventory"])
 api_router.include_router(customers.router, prefix="/customers", tags=["customers"])
 api_router.include_router(ozon.router, prefix="/ozon", tags=["ozon"])
+api_router.include_router(ozon_products.router, prefix="/ozon", tags=["ozon-products"])
+api_router.include_router(
+    ozon_categories.router, prefix="/ozon", tags=["ozon-categories"]
+)
+api_router.include_router(ozon_orders.router, prefix="/ozon", tags=["ozon-orders"])
+api_router.include_router(ozon_pricing.router, prefix="/ozon", tags=["ozon-pricing"])
 api_router.include_router(
     dashboard.router, prefix="/dashboard", tags=["Operations Dashboard"]
 )
